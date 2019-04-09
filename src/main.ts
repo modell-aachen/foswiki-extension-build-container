@@ -12,12 +12,12 @@ const githubOrganization = process.env.GITHUB_ORGANIZATION || "";
 const repository = process.env.GITHUB_REPOSITORY || "";
 const ref = process.env.GITHUB_REF || "";
 const githubAuthToken = process.env.GITHUB_AUTH_TOKEN || "";
-
-const archiveDownloadUrl = `https://api.github.com/repos/${githubOrganization}/${repository}/zipball/${ref}`;
-const archiveDownloadPath = path.resolve(__dirname, 'archive.zip');
 const buildPath = process.env.BUILD_PATH || "";
 const deployPath = process.env.DEPLOY_PATH || "";
 const foswikiLibPath = process.env.FOSWIKI_LIBS || "";
+
+const archiveDownloadUrl = `https://api.github.com/repos/${githubOrganization}/${repository}/zipball/${ref}`;
+const archiveDownloadPath = path.resolve(buildPath, 'archive.zip');
 
 const downloadFile = async (url: string, path:string) => {
     const response = await axios({
