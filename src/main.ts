@@ -1,7 +1,5 @@
-// const BuildService = require("./BuildService");
-
 import dotenv from 'dotenv';
-import fs, { write } from 'fs';
+import fs from 'fs';
 import axios from 'axios';
 import path from 'path';
 import unzip from 'unzip';
@@ -19,13 +17,18 @@ const foswikiLibPath = process.env.FOSWIKI_LIBS || "";
 const archiveDownloadUrl = `https://api.github.com/repos/${githubOrganization}/${repository}/zipball/${ref}`;
 const archiveDownloadPath = path.resolve(buildPath, 'archive.zip');
 
-const downloadFile = async (url: string, path:string) => {
-    const response = await axios({
-        url,
-        method: 'GET',
-        responseType: 'stream',
-        headers: {'Authorization': `token ${githubAuthToken}`},
-    });
+const downloadSourceArchive = async (url: string, path:string) => {
+    let response;
+    try {
+        response = await axios({
+            url,
+            method: 'GET',
+            responseType: 'stream',
+            headers: {'Authorization': `token ${githubAuthToken}`},
+        });
+    } catch(error) {
+        throw new Error(`Failed downloading source archive from Github: ${error.response.statusText}`);
+    }
 
     const writer = fs.createWriteStream(path);
 
@@ -37,7 +40,7 @@ const downloadFile = async (url: string, path:string) => {
     });
 }
 
-const unzipArchive = async (archivePath: string, outputPath: string) => {
+const unzipSourceArchive = async (archivePath: string, outputPath: string) => {
     const archiveReader = fs.createReadStream(archivePath);
     const unzipper = unzip.Extract({path: outputPath});
     archiveReader.pipe(unzipper);
@@ -48,8 +51,10 @@ const unzipArchive = async (archivePath: string, outputPath: string) => {
 }
 
 const main = async () => {
-    await downloadFile(archiveDownloadUrl, archiveDownloadPath);
-    await unzipArchive(archiveDownloadPath, buildPath);
+    console.info("Downloading source archive from Github...");
+    await downloadSourceArchive(archiveDownloadUrl, archiveDownloadPath);
+    console.info("Unzipping...");
+    await unzipSourceArchive(archiveDownloadPath, buildPath);
 
     const extensionBuilder = new ExtensionBuilder({
         name: repository,
@@ -58,7 +63,14 @@ const main = async () => {
         foswikiLibPath: foswikiLibPath,
         outPath: deployPath,
     });
+    console.info("Creating build...");
     await extensionBuilder.build();
 }
 
-main().then(console.log, console.log);
+main().then(() => {
+    console.info("Build succeeded!");
+    console.info(`Build deployed to: ${deployPath}`);
+}, (err) => {
+    console.error(err);
+    process.exit(1);
+});
