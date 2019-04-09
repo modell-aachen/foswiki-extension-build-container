@@ -1,0 +1,1 @@
+- Docker entrypoint für debugging

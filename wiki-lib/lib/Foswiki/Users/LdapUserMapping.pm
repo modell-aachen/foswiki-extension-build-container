@@ -1,0 +1,686 @@
+# Module of Foswiki - The Free and Open Source Wiki http://foswiki.org/
+#
+# Copyright (C) 2006-2015 Michael Daum http://michaeldaumconsulting.com
+# Portions Copyright (C) 2006 Spanlink Communications
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version. For
+# more details read LICENSE in the root of this distribution.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# As per the GPL, removal of this notice is prohibited.
+
+package Foswiki::Users::LdapUserMapping;
+
+use strict;
+use warnings;
+use Foswiki::Contrib::LdapContrib ();
+use Foswiki::ListIterator ();
+
+use Foswiki::Users::TopicUserMapping;
+our @ISA = qw( Foswiki::Users::TopicUserMapping );
+
+use vars qw($isLoadedMapping);
+
+# For recursively checking group memberships but not recursing forever
+my %scanning;
+
+=pod
+
+---+ Foswiki::Users::LdapUserMapping
+
+This class allows to use user names and groups stored in an LDAP
+database inside Foswiki in a transparent way. This replaces Foswiki's
+native way to represent users and groups using topics with
+according LDAP records.
+
+=cut
+
+=pod 
+
+---++ new($session) -> $ldapUserMapping
+
+create a new Foswiki::Users::LdapUserMapping object and constructs an <nop>LdapContrib
+object to delegate LDAP services to.
+
+=cut
+
+sub new {
+  my ($class, $session) = @_;
+
+  my $this = bless($class->SUPER::new($session), $class);
+  $this->{ldap} = &Foswiki::Contrib::LdapContrib::getLdapContrib($session);
+  $this->{eachGroupMember} = {};
+  $this->{isInGroupCache} = {};
+
+  return $this;
+}
+
+=pod
+
+---++ finish()
+
+Complete processing after the client's HTTP request has been responded
+to. I.e. it disconnects the LDAP database connection.
+
+=cut
+
+sub finish {
+  my $this = shift;
+
+  $this->{ldap}->finish() if $this->{ldap};
+  undef $this->{ldap};
+  undef $this->{eachGroupMember};
+  undef $this->{isInGroupCache};
+  $this->SUPER::finish();
+}
+
+=pod
+
+---++ writeDebug($msg) 
+
+Static method to write a debug messages. 
+
+=cut
+
+sub writeDebug {
+  print STDERR "- LdapUserMapping - $_[0]\n" if $Foswiki::cfg{Ldap}{Debug};
+}
+
+=pod
+
+---++ addUser ($login, $wikiname, $password, $emails) -> $cUID
+
+overrides and thus disables the SUPER method
+
+=cut
+
+sub addUser {
+  my $this = shift;
+
+  return $this->SUPER::addUser(@_)
+    if $this->{ldap}{nativeGroupsBackoff};
+
+  return '';
+}
+
+=begin 
+
+---++ getLoginName ($cUID) -> $login
+
+Converts an internal cUID to that user's login
+(undef on failure)
+
+=cut
+
+sub getLoginName {
+  my ($this, $cUID) = @_;
+
+  my $login = $cUID;
+
+  # Remove the mapping id in case this is a subclass
+  $login =~ s/$this->{mapping_id}// if $this->{mapping_id};
+
+  $login = _mapcUID2Login($login);
+
+  $login = lc($login) unless $this->{ldap}{caseSensitiveLogin};
+
+  return $login if $this->{ldap}->getWikiNameOfLogin($login);
+  return $login;
+}
+
+# Reverse the encoding used to generate cUIDs in login2cUID
+# use bytes to ignore character encoding
+sub _mapcUID2Login {
+  my $cUID = shift;
+
+  # SMELL: disabled this to allow underscores in login names
+  use bytes;
+  $cUID =~ s/_([0-9a-f][0-9a-f])/chr(hex($1))/gei;
+  no bytes;
+
+  return $cUID;
+}
+
+# local copy of Foswiki::Users::mapLogin2cUID
+sub _mapLogin2cUID {
+  my $login = shift;
+
+  # SMELL: disabled this to allow underscores in login names
+  use bytes;
+  $login =~ s/([^a-zA-Z0-9])/'_'.sprintf('%02x', ord($1))/ge;
+  no bytes;
+
+  return $login;
+}
+
+
+=pod
+
+---++ getWikiName ($cUID) -> wikiname
+
+Maps a canonical user name to a wikiname
+
+=cut
+
+sub getWikiName {
+  my ($this, $cUID) = @_;
+
+  #writeDebug("called LdapUserMapping::getWikiName($cUID)");
+
+  my $loginName = _mapcUID2Login($cUID);
+
+  return $loginName if $this->isGroup($loginName);
+
+  my $wikiName;
+
+  unless ($this->{ldap}{excludeMap}{$loginName}) {
+    $wikiName = $this->{ldap}->getWikiNameOfLogin($loginName);
+    $wikiName = undef if !$wikiName || $wikiName eq '_unknown_';
+  }
+
+  unless ($wikiName) {
+
+    # fallback
+    #writeDebug("asking SUPER");
+    $wikiName = $this->SUPER::getWikiName($cUID);
+  }
+
+  # fallback fallback
+  $wikiName ||= $loginName;
+
+  #writeDebug("returning $wikiName");
+  return $wikiName;
+}
+
+=pod
+
+---++ getDisplayName($cUID) -> $displayName
+
+Fetches a human-readable representation of the user's name, e.g. "John Doe".
+If a display name cannot be generated, falls back to WikiName and finally login
+name.
+
+=cut
+
+sub getDisplayName {
+  my ($this, $cUID) = @_;
+
+  my $loginName = _mapcUID2Login($cUID);
+  my $dattr = $this->{ldap}->getDisplayAttributesOfLogin($loginName);
+  my $res;
+  unless (ref $dattr) {
+    $res = $this->{ldap}->getWikiNameOfLogin($loginName);
+    $res = $loginName unless $res;
+    return $res;
+  }
+  $res = $Foswiki::cfg{Ldap}{DisplayNameFormat} || '$displayName';
+  $res =~ s/\$(\w+)\((.*?)\)/
+    my $k = $1;
+    my ($pre, $post, $alt) = split(m#\|#, $2);
+    exists $dattr->{$k} ? $pre.$dattr->{$k}.$post : $alt;
+  /eg;
+  while (my ($k, $v) = each(%$dattr)) {
+    $v = '' unless defined $v;
+    $res =~ s/\$$k\b/$v/g;
+  }
+  $res;
+}
+
+=pod 
+
+---++ getEmails($cUID) -> @emails
+
+emails might be stored in the ldap account as well if
+the record is of type possixAccount and inetOrgPerson.
+if this is not the case we fallback to the default behavior
+
+=cut
+
+sub getEmails {
+  my ($this, $user, $emails) = @_;
+
+  $emails ||= {};
+
+  return values %$emails if $emails->{$user};
+
+  if ($this->isGroup($user)) {
+    my $it = $this->eachGroupMember($user);
+    while ($it->hasNext()) {
+      $this->getEmails($it->next(), $emails);
+    }
+  } else {
+    # get emails from the password manager
+    my $login = $this->getLoginName($user);
+    if ($login) {
+      foreach ($this->{passwords}->getEmails($login, $emails)) {
+        $$emails{$user} = $_;
+      }
+    }
+  }
+
+  return values %$emails;
+}
+
+=pod
+
+---++ userExists($cUID) -> $boolean
+
+Determines if the user already exists or not. 
+
+=cut
+
+sub userExists {
+  my ($this, $cUID) = @_;
+
+  my $loginName = $this->getLoginName($cUID);
+  return 0 unless $loginName;
+
+  my $wikiName = $this->{ldap}->getWikiNameOfLogin($loginName);
+
+  return 1 if $wikiName;
+
+  my $result = 0;
+  if ($this->{ldap}{nativeGroupsBackoff} && !$this->{session}->inContext("_user_exists")) {
+    # see LdapPasswdUser
+    $this->{session}->enterContext("_user_exists");
+    $result = $this->SUPER::userExists($cUID);
+    $this->{session}->leaveContext("_user_exists");
+  }
+
+  return $result;
+}
+
+=pod
+
+---++ eachUser () -> listIterator of cUIDs
+
+returns a list iterator for all known users
+
+=cut
+
+sub eachUser {
+  my $this = shift;
+
+  my @allCUIDs = ();
+
+  foreach my $login (@{$this->{ldap}->getAllLoginNames()}) {
+    my $cUID = $this->login2cUID($login, 1);
+    push @allCUIDs, $cUID if $cUID;
+  }
+
+  my $ldapIter = new Foswiki::ListIterator(\@allCUIDs);
+  return $ldapIter unless $this->{ldap}{nativeGroupsBackoff};
+
+  my $backOffIter = $this->SUPER::eachUser(@_);
+  my @list = ($ldapIter, $backOffIter);
+
+  return new Foswiki::AggregateIterator(\@list, 1);
+}
+
+=pod
+
+---++ eachGroup () -> listIterator of groupnames
+
+returns a list iterator for all known groups
+
+=cut
+
+sub eachGroup {
+  my ($this) = @_;
+
+  my @groups = $this->getListOfGroups();
+
+  return new Foswiki::ListIterator(\@groups);
+}
+
+=pod
+
+---++ getListOfGroups( ) -> @listOfUserObjects
+
+Get a list of groups defined in the LDAP database. If 
+=nativeGroupsBackoff= is defined the set of LDAP and native groups will
+merged whereas LDAP groups have precedence in case of a name clash.
+
+=cut
+
+sub getListOfGroups {
+  my $this = shift;
+
+  #writeDebug("called getListOfGroups()");
+
+  my %groups;
+
+  return @{$this->SUPER::_getListOfGroups()}
+    unless $this->{ldap}{mapGroups};
+
+  if ($this->{ldap}{nativeGroupsBackoff}) {
+    %groups = map { $_ => 1 } @{$this->SUPER::_getListOfGroups()};
+  } else {
+    %groups = ();
+  }
+  my $groupNames = $this->{ldap}->getGroupNames();
+  if ($groupNames) {
+    foreach my $groupName (@$groupNames) {
+      $groups{$groupName} = 1;
+    }
+  }
+  #writeDebug("got " . (scalar keys %groups) . " overall groups=".join(',',keys %groups));
+  return keys %groups;
+}
+
+=pod
+
+---++ eachGroupMember ($groupName) ->  listIterator of cUIDs
+
+returns a list iterator for all groups members
+
+=cut
+
+sub eachGroupMember {
+  my ($this, $groupName, $options) = @_;
+
+  #writeDebug("called eachGroupMember($groupName)");
+  return $this->SUPER::eachGroupMember($groupName, $options)
+    unless $this->{ldap}{mapGroups};
+
+  my $expand = $options->{expand};
+  $expand = 1 unless defined $expand;
+
+  my $result = $this->{"eachGroupMember::$expand"}{$groupName};
+
+  unless (defined $result) {
+    $result = [];
+
+    # prevent deep recursion
+    $this->{_seen} ||= {};
+
+    unless ($this->{_seen}{$groupName}) {
+      $this->{_seen}{$groupName} = 1;
+
+      my $members = $this->{ldap}->getGroupMembers($groupName) || [];
+
+      unless (@$members) {
+
+        # fallback to native groups,
+        # try also to find the SuperAdminGroup
+        if ($this->{ldap}{nativeGroupsBackoff} || $groupName eq $Foswiki::cfg{SuperAdminGroup}) {
+
+          #writeDebug("asking SUPER");
+          my $listResult = $this->SUPER::eachGroupMember($groupName, $options);
+          $result = [$listResult->all] if $listResult && $listResult->{list};    # SMELL: breaks encapsulation of list iterator, but hey
+        }
+      } else {
+        foreach my $login (@$members) {
+          if ($expand && $this->isGroup($login)) {
+            my $it = $this->eachGroupMember($login, $options);
+            while ($it->hasNext()) {
+              push @$result, $it->next;
+            }
+          } else {
+            if ($this->isGroup($login)) {
+              push @$result, $login;
+            } else {
+              my $cUID = $this->login2cUID($login);
+              push @$result, $cUID if $cUID;
+            }
+          }
+        }
+      }
+    }
+
+    $this->{_seen} = {};
+    $this->{"eachGroupMember::$expand"}{$groupName} = $result;
+  }
+
+  return new Foswiki::ListIterator($result);
+}
+
+=pod
+
+---++ eachMembership ($cUID) -> listIterator of groups this user is in
+
+returns a list iterator for all groups a user is in.
+
+=cut
+
+sub eachMembership {
+  my ($this, $cUID) = @_;
+
+  my @groups = $this->getListOfGroups();
+
+  my $it = new Foswiki::ListIterator(\@groups);
+  $it->{filter} = sub {
+    $this->isInGroup($cUID, $_[0]);
+  };
+
+  return $it;
+}
+
+=pod
+
+---++ isGroup($user) -> $boolean
+
+Establish if a user object refers to a user group or not.
+This returns true for the <nop>SuperAdminGroup or
+the known LDAP groups. Finally, if =nativeGroupsBackoff= 
+is set the native mechanism are used to check if $user is 
+a group
+
+=cut
+
+sub isGroup {
+  my ($this, $user) = @_;
+
+  return 0 unless $user;
+  #writeDebug("called isGroup($user)");
+
+  my $wikiName = _mapcUID2Login($user);
+
+  # special treatment for build-in groups
+  return 1 if $wikiName eq $Foswiki::cfg{SuperAdminGroup};
+
+  my $isGroup;
+
+  if ($this->{ldap}{mapGroups}) {
+    # ask LDAP
+    $isGroup = $this->{ldap}->isGroup($wikiName) || $this->{ldap}->isGroup($user);
+  }
+
+  # backoff if it does not know
+  if (!defined($isGroup) && $this->{ldap}{nativeGroupsBackoff}) {
+    $isGroup = ($wikiName =~ /Group$/);
+  }
+
+  return $isGroup;
+}
+
+=pod
+
+---++ findUserByEmail( $email ) -> \@cUIDs
+   * =$email= - email address to look up
+
+Return a list of canonical user names for the users that have this email
+registered with the password manager or the user mapping manager.
+
+=cut
+
+sub findUserByEmail {
+  my ($this, $email) = @_;
+
+  return $this->{ldap}->getLoginOfEmail($email);
+}
+
+=pod 
+
+---++ findUserByWikiName ($wikiName) -> list of cUIDs associated with that wikiname
+
+See baseclass for documentation
+
+=cut
+
+sub findUserByWikiName {
+  my ($this, $wikiName) = @_;
+
+  #writeDebug("called findUserByWikiName($wikiName)");
+  my @users = ();
+
+  if ($this->isGroup($wikiName)) {
+    push @users, $wikiName;
+  } else {
+    my $loginName = $this->{ldap}->getLoginOfWikiName($wikiName) || $wikiName;
+    my $cUID = $this->login2cUID($loginName, 1);
+    push @users, $cUID if $cUID;
+  }
+
+  #writeDebug("found ".join(', ', @users));
+
+  return \@users;
+}
+
+=pod
+
+---++ handlesUser($cUID, $login, $wikiName) -> $boolean
+
+Called by the Foswiki::Users object to determine which loaded mapping
+to use for a given user.
+
+The user can be identified by any of $cUID, $login or $wikiName. Any of
+these parameters may be undef, and they should be tested in order; cUID
+first, then login, then wikiName. 
+
+=cut
+
+sub handlesUser {
+  my ($this, $cUID, $login, $wikiName) = @_;
+
+  return 0 if $login && $login =~ /^baseusermapping/i;
+  return 0 if $cUID && $cUID =~ /^baseusermapping/i;
+  return 0 if $wikiName && $wikiName =~ /^baseusermapping/i;
+  return 0 
+    if $this->{session}->{users}->{basemapping}->handlesUser($cUID, $login, $wikiName);
+
+  if ($this->{ldap}{mapGroups}) {
+    # ask LDAP
+    return 1 if $login && $this->{ldap}->isGroup($login);
+    return 1 if $wikiName && $this->{ldap}->isGroup($wikiName);
+  }
+  return 1 if $login && $this->{ldap}->getWikiNameOfLogin($login);
+  return 1 if $wikiName && $this->{ldap}->getLoginOfWikiName($wikiName);
+
+  $cUID = $this->login2cUID($login) if !$cUID && $login;
+  return 1 if defined $cUID && $this->userExists($cUID);
+
+  return 1 if defined $cUID && $cUID =~ /Group$/ && Foswiki::Func::topicExists($Foswiki::cfg{UsersWebName}, $cUID);
+  return 1 if defined $login && $login =~ /Group$/ && Foswiki::Func::topicExists($Foswiki::cfg{UsersWebName}, $login);
+  return 1 if defined $wikiName && $wikiName =~ /Group$/ && Foswiki::Func::topicExists($Foswiki::cfg{UsersWebName}, $wikiName);
+  return 0;
+}
+
+=pod
+
+---++ login2cUID($loginName, $dontcheck) -> $cUID
+
+Convert a login name to the corresponding canonical user name. The
+canonical name can be any string of 7-bit alphanumeric and underscore
+characters, and must correspond 1:1 to the login name.
+(undef on failure)
+
+(if dontcheck is true, return a cUID for a nonexistant user too.
+This is used for registration)
+
+=cut
+
+sub login2cUID {
+  my ($this, $name, $dontcheck) = @_;
+
+  $name = $this->{ldap}->locale_lc($name) unless $this->{ldap}{caseSensitiveLogin};
+
+  my $cached = $this->{ldap}->getLogin2cUID($name);
+  return $cached if defined $cached;
+
+  my $origName = $name;
+  #writeDebug("called login2cUID($name)");
+
+  my $loginName = $this->{ldap}->getLoginOfWikiName($name);
+  if(defined $loginName) {
+    my $cUID = $this->{mapping_id}.Foswiki::Users::mapLogin2cUID($loginName);
+    return undef unless $cUID;
+    $this->{ldap}->putLogin2cUID($name, $cUID);
+    return $cUID;
+  }
+
+  #$name = lc($name) unless $this->{ldap}{caseSensitiveLogin};
+  my $cUID = $this->{mapping_id} . _mapLogin2cUID($name);
+
+  my $valid = $loginName || $this->{ldap}->getWikiNameOfLogin($name);
+  $this->{ldap}->putLogin2cUID($name, $cUID) if $valid;
+  return $cUID if $valid;
+
+  return $cUID if $dontcheck;
+}
+
+=pod
+
+---++ groupAllowsChange($group, $cuid) -> boolean
+
+normally, ldap-groups are read-only as they are maintained
+using ldap-specific tools.
+
+this method only returns 1 if the group is a topic-based group
+
+=cut
+
+sub groupAllowsChange {
+  my ($this, $group, $cuid) = @_;
+
+  my ($groupWeb, $groupName) = $this->{session}->normalizeWebTopicName($Foswiki::cfg{UsersWebName}, $group);
+
+  return $this->SUPER::groupAllowsChange($group, $cuid)
+    if $this->{session}->topicExists($groupWeb, $groupName);
+
+  return 0;
+}
+
+sub isInGroup {
+  my ( $this, $cUID, $group, $options ) = @_;
+
+  my $cache = sub {
+      my ($cUID, $group, $val) = @_;
+      $this->{isInGroupCache}{$cUID}{$group} = $val;
+      if ($this->{ldap}->isGroup($group)) {
+          $this->{ldap}->putIsInGroup($cUID, $group, $val);
+      }
+      $val;
+  };
+
+  my $expand = $options->{expand};
+  $expand = 1 unless defined $expand;
+
+  my $isInGroup = $this->{isInGroupCache}{$cUID} ? $this->{isInGroupCache}{$cUID}{$group} : undef;
+  return $isInGroup if defined $isInGroup;
+  $isInGroup = $this->{ldap}->getIsInGroup($cUID, $group);
+  return $isInGroup if defined $isInGroup;
+
+  local $scanning{$group} = 1;
+  my $it = $this->eachGroupMember( $group, { expand => 0 } );
+  while ( $it->hasNext() ) {
+      my $u = $it->next();
+      next if $scanning{$u};
+
+       if ($u eq $cUID) {
+           return $cache->($cUID, $group, 1);
+       }
+       if ( $expand && $this->isGroup($u) && $this->isInGroup( $cUID, $u )) {
+           return $cache->($cUID, $group, 1);
+       }
+   }
+   return $cache->($cUID, $group, 0);
+}
+
+1;
