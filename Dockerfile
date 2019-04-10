@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y yarn
 
 WORKDIR /src/
 COPY . .
-RUN yarn build --version
+RUN yarn
 RUN yarn build
 
 ENTRYPOINT yarn start
