@@ -5,14 +5,15 @@ pipeline {
             agent {
                 docker {
                     image 'quay.io/modac/foswiki-extension-build-container'
-                    args '-v $WORKSPACE/deploy:/deploy --env GITHUB_ORGANIZATION --env GITHUB_REPOSITORY --env GITHUB_AUTH_TOKEN --env GITHUB_REF'
+                    reuseNode true
+                    args '-u root:root -v $WORKSPACE/deploy:/deploy --entrypoint=""'
                 }
             }
             environment {
                 GITHUB_AUTH_TOKEN = credentials('87e330a0-ce35-4301-a524-40d6141f355b')
             }
             steps {
-                sh "yarn start"
+                sh "node /src/dist/main.js"
             }
         }
     }
