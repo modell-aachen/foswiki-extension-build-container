@@ -11,6 +11,9 @@ pipeline {
             environment {
                 GITHUB_AUTH_TOKEN = credentials('87e330a0-ce35-4301-a524-40d6141f355b')
             }
+            steps {
+                sh "yarn start"
+            }
         }
     }
 }
