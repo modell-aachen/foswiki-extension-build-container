@@ -7,8 +7,8 @@
   "license": "MIT",
   "scripts": {
     "start": "node dist/main.js",
-    "build": "tsc",
-    "watch": "tsc --watch"
+    "build": "npx tsc",
+    "watch": "npx tsc --watch"
   },
   "dependencies": {
     "@types/dotenv": "^6.1.1",
