@@ -51,6 +51,7 @@ const unzipSourceArchive = async (archivePath: string, outputPath: string) => {
 }
 
 const main = async () => {
+    console.info(`Starting: ${githubOrganization}/${repository} on ${ref}`);
     console.info("Downloading source archive from Github...");
     await downloadSourceArchive(archiveDownloadUrl, archiveDownloadPath);
     console.info("Unzipping...");
@@ -68,8 +69,7 @@ const main = async () => {
 }
 
 main().then(() => {
-    console.info("Build succeeded!");
-    console.info(`Build deployed to: ${deployPath}`);
+    console.info(`Build succeeded and deployed to ${deployPath}`);
 }, (err) => {
     console.error(err);
     process.exit(1);

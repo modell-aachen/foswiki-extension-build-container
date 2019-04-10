@@ -1,15 +1,10 @@
 import fs from 'fs';
-// import del from 'del';
 import util from 'util';
 import glob from 'glob';
 import child_process from 'child_process';
 import path from 'path';
-const exec = util.promisify(child_process.exec);
-// const lodash = require('lodash');
-// const mkdirp = util.promisify(require('mkdirp'));
-// const sanitizeFilename = require("sanitize-filename");
-const access = util.promisify(fs.access);
 
+const exec = util.promisify(child_process.exec);
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 
@@ -45,17 +40,18 @@ class ExtensionBuilder {
     }
     async rewriteReleaseAndVersion(){
         const pmFile = await this.findExtensionMainFile();
-        let replacementString = `$1${this.releaseString()}$2`;
 
         let content = await readFile(pmFile, 'utf8');
-
-        // change RELEASE string in .pm file
-        content = content.replace(/^(\s*(?:our\s*)?\$RELEASE\s*=\s*['"]).*(['"]\s*;)/m, replacementString);
-
-        // filter deprecated SVN Version strings
-        content = content.replace(/^(\s*(?:our\s*)?\$VERSION\s*=\s*['"])\$Rev.*(['"]\s*;)/m, replacementString);
+        content = this.replaceReleaseString(content);
+        content = this.replaceDeprecatedSVNVersionString(content);
 
         await writeFile(pmFile, content);
+    }
+    replaceReleaseString(content: string) {
+        return content.replace(/^(\s*(?:our\s*)?\$RELEASE\s*=\s*['"]).*(['"]\s*;)/m, `$1${this.releaseString()}$2`);
+    }
+    replaceDeprecatedSVNVersionString(content: string){
+        return content.replace(/^(\s*(?:our\s*)?\$VERSION\s*=\s*['"])\$Rev.*(['"]\s*;)/m, `$1${this.releaseString()}$2`);
     }
     async getComponentRootPath() {
         const self = this;
@@ -98,24 +94,39 @@ class ExtensionBuilder {
             });
         });
     }
-    async getComponentPmFilePath() {
-        let pmFilePath = this.findExtensionMainFile();
-        return pmFilePath;
+    async getComponentDependenciesFilePath() {
+        const self = this;
+        return new Promise<string>((resolve, reject) => {
+            glob(`${self.path}/**/${self.name}/DEPENDENCIES`, (err, matches) => {
+                if(err){
+                    reject(err);
+                }
+                resolve(matches[0]);
+            });
+        });
     }
-
     async getComponentBuildCommand(){
         const pmFilePath = path.dirname(await this.findExtensionMainFile());
         return `perl ${pmFilePath}/${this.name}/build.pl release`;
     }
-
     async deployToOutPath() {
         const componentPath = await this.getComponentRootPath();
 
         await this.copyFile(componentPath, this.outPath, `${this.name}.tgz`);
         await this.copyFile(componentPath, this.outPath, `${this.name}_installer`);
         await this.copyFile(componentPath, this.outPath, `${this.name}.txt`);
-    }
 
+        let dependenciesFilePath;
+        try {
+            dependenciesFilePath = await this.getComponentDependenciesFilePath();
+        } catch(_) {
+            dependenciesFilePath = "";
+        }
+
+        if(dependenciesFilePath) {
+            await this.copyFile(path.dirname(dependenciesFilePath), this.outPath, `DEPENDENCIES`);
+        }
+    }
     releaseString() {
         if(/q\d+.\d+.\d+/.test(this.ref)){
             return this.ref.substr(1);
