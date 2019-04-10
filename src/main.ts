@@ -2,8 +2,8 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import axios from 'axios';
 import path from 'path';
-import unzip from 'unzip';
 import { ExtensionBuilder } from './ExtensionBuilder';
+import tar from 'tar';
 
 dotenv.config();
 const githubOrganization = process.env.GITHUB_ORGANIZATION || "";
@@ -14,8 +14,8 @@ const buildPath = process.env.BUILD_PATH || "";
 const deployPath = process.env.DEPLOY_PATH || "";
 const foswikiLibPath = process.env.FOSWIKI_LIBS || "";
 
-const archiveDownloadUrl = `https://api.github.com/repos/${githubOrganization}/${repository}/zipball/${ref}`;
-const archiveDownloadPath = path.resolve(buildPath, 'archive.zip');
+const archiveDownloadUrl = `https://api.github.com/repos/${githubOrganization}/${repository}/tarball/${ref}`;
+const archiveDownloadPath = path.resolve(buildPath, 'archive.tar.gz');
 
 const downloadSourceArchive = async (url: string, path:string) => {
     let response;
@@ -42,7 +42,7 @@ const downloadSourceArchive = async (url: string, path:string) => {
 
 const unzipSourceArchive = async (archivePath: string, outputPath: string) => {
     const archiveReader = fs.createReadStream(archivePath);
-    const unzipper = unzip.Extract({path: outputPath});
+    const unzipper = tar.x({cwd: outputPath, });
     archiveReader.pipe(unzipper);
     return new Promise((resolve, reject) => {
         unzipper.on('close', resolve);
