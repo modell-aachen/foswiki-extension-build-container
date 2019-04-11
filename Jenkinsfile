@@ -7,6 +7,8 @@ pipeline {
                     image 'quay.io/modac/foswiki-extension-build-container'
                     reuseNode true
                     args '-u root:root -v $WORKSPACE/deploy:/deploy --entrypoint=""'
+                    customWorkspace "/var/lib/jenkins/workspace/qwiki-build-extension/$BUILD_NUMBER"
+                    alwaysPull true
                 }
             }
             environment {
