@@ -13,6 +13,7 @@ const githubAuthToken = process.env.GITHUB_AUTH_TOKEN || "";
 const buildPath = process.env.BUILD_PATH || "";
 const deployPath = process.env.DEPLOY_PATH || "";
 const foswikiLibPath = process.env.FOSWIKI_LIBS || "";
+const releaseString = process.env.RELEASE_STRING || "";
 
 const archiveDownloadUrl = `https://api.github.com/repos/${githubOrganization}/${repository}/tarball/${ref}`;
 const archiveDownloadPath = path.resolve(buildPath, 'archive.tar.gz');
@@ -62,6 +63,7 @@ const main = async () => {
         path: buildPath,
         ref: ref,
         foswikiLibPath: foswikiLibPath,
+        releaseString: releaseString,
         outPath: deployPath,
     });
     console.info("Creating build...");

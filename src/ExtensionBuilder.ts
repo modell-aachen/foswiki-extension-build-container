@@ -22,10 +22,11 @@ class ExtensionBuilder {
     path: string;
     foswikiLibPath: string;
     outPath: string
-    constructor({name, path, ref, foswikiLibPath, outPath}: ExtensionBuilderOptions) {
+    constructor({name, path, ref, foswikiLibPath, outPath, releaseString}: ExtensionBuilderOptions) {
         this.name = name;
         this.path = path;
         this.ref = ref;
+        this.releaseString = releaseString;
         this.foswikiLibPath = foswikiLibPath;
         this.outPath = outPath
     }
@@ -48,10 +49,10 @@ class ExtensionBuilder {
         await writeFile(pmFile, content);
     }
     replaceReleaseString(content: string) {
-        return content.replace(/^(\s*(?:our\s*)?\$RELEASE\s*=\s*['"]).*(['"]\s*;)/m, `$1${this.releaseString()}$2`);
+        return content.replace(/^(\s*(?:our\s*)?\$RELEASE\s*=\s*['"]).*(['"]\s*;)/m, `$1${this.releaseString}$2`);
     }
     replaceDeprecatedSVNVersionString(content: string){
-        return content.replace(/^(\s*(?:our\s*)?\$VERSION\s*=\s*['"])\$Rev.*(['"]\s*;)/m, `$1${this.releaseString()}$2`);
+        return content.replace(/^(\s*(?:our\s*)?\$VERSION\s*=\s*['"])\$Rev.*(['"]\s*;)/m, `$1${this.releaseString}$2`);
     }
     async getComponentRootPath() {
         const self = this;
@@ -125,13 +126,6 @@ class ExtensionBuilder {
 
         if(dependenciesFilePath) {
             await this.copyFile(path.dirname(dependenciesFilePath), this.outPath, `DEPENDENCIES`);
-        }
-    }
-    releaseString() {
-        if(/q\d+.\d+.\d+/.test(this.ref)){
-            return this.ref.substr(1);
-        } else {
-            return new Date().toISOString();
         }
     }
     async copyFile(srcdir: string, dstdir: string, file: string) {
