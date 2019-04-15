@@ -24,7 +24,7 @@ pipeline {
                 RMS_AUTH_TOKEN = credentials('6a6cdfed-3d05-4bc2-a45e-36190c5769cc')
             }
             steps {
-                sh "tar zcf build.tar.gz *"
+                sh "tar zcf ${BUILD_NUMBER}/build.tar.gz ${BUILD_NUMBER}/deploy/*"
                 sh "curl -i -H \"rms-auth-token: ${RMS_AUTH_TOKEN}\" -F \"build=@${BUILD_NUMBER}/build.tar.gz\" \"${UPLOAD_DESTINATION}?buildId=${BUILD_ID}\""
             }
         }
