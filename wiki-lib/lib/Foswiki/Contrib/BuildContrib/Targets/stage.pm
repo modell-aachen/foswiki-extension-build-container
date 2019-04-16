@@ -16,6 +16,7 @@
 package Foswiki::Contrib::Build;
 
 use strict;
+use JSON;
 
 our @stageFilters;
 
@@ -78,6 +79,28 @@ sub target_stage {
             print `$cmd`;
         }
     }
+    $this->generate_metadatafile();
+}
+
+sub generate_metadatafile {
+    my $this    = shift;
+    my $project = $this->{project};
+
+    my %metadata = (
+        date => $this->{DATE},
+        release => $this->{RELEASE},
+        version => "".$this->{VERSION},
+        manifest => $this->{files},
+        dependencies => $this->{dependencies}
+    );
+    my $json = to_json(\%metadata, {utf8 => 1, pretty => 1});
+    my $metaDataFile = $this->{basedir} . '/metadata.json';
+
+    open(my $fh, '>:encoding(UTF-8)', $metaDataFile)
+      or die "Could not open file '$metaDataFile'";
+    print $fh $json;
+    close $fh;
+    return;
 }
 
 1;
