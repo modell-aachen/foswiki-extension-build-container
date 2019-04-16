@@ -91,6 +91,7 @@ sub generate_metadatafile {
         release => $this->{RELEASE},
         version => "".$this->{VERSION},
         manifest => $this->{files},
+        description => $this->{SHORTDESCRIPTION},
         dependencies => $this->{dependencies}
     );
     my $json = to_json(\%metadata, {utf8 => 1, pretty => 1});
