@@ -13,6 +13,7 @@ type ExtensionBuilderOptions = {
     path: string,
     ref: string,
     foswikiLibPath: string,
+    releaseString: string,
     outPath: string,
 }
 
@@ -21,6 +22,7 @@ class ExtensionBuilder {
     ref: string;
     path: string;
     foswikiLibPath: string;
+    releaseString: string;
     outPath: string
     constructor({name, path, ref, foswikiLibPath, outPath, releaseString}: ExtensionBuilderOptions) {
         this.name = name;
@@ -116,6 +118,7 @@ class ExtensionBuilder {
         await this.copyFile(componentPath, this.outPath, `${this.name}.tgz`);
         await this.copyFile(componentPath, this.outPath, `${this.name}_installer`);
         await this.copyFile(componentPath, this.outPath, `${this.name}.txt`);
+        await this.copyFile(componentPath, this.outPath, 'metadata.json');
 
         let dependenciesFilePath;
         try {
