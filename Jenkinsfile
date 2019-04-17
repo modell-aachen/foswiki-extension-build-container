@@ -1,12 +1,19 @@
 pipeline {
     agent none
     stages {
+        stage('Prepare Workspace') {
+            agent any
+            steps {
+                sh "mkdir ${BUILD_NUMBER}"
+                sh "mkdir ${BUILD_NUMBER}/deploy"
+            }
+        }
         stage('Run foswiki extension build container') {
             agent {
                 docker {
                     image 'quay.io/modac/foswiki-extension-build-container'
                     reuseNode true
-                    args '-u root:root -v $WORKSPACE/deploy:/deploy --entrypoint=""'
+                    args '-v $WORKSPACE/deploy:/deploy --entrypoint=""'
                     customWorkspace "/var/lib/jenkins/workspace/qwiki-build-extension/$BUILD_NUMBER"
                     alwaysPull true
                 }

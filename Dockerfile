@@ -7,6 +7,9 @@ ENV DEPLOY_PATH /deploy
 RUN mkdir /src
 RUN mkdir /build
 RUN mkdir /deploy
+RUN chmod -R 777 /src
+RUN chmod -R 777 /build
+RUN chmod -R 777 /deploy
 RUN apt-get update
 RUN apt-get install -y apt-transport-https curl libcss-minifier-perl libjavascript-minifier-perl libjson-perl libcgi-session-perl zip vim build-essential default-jre default-jdk ant make
 RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
