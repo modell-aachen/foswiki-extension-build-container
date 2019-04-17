@@ -13,7 +13,7 @@ pipeline {
                 docker {
                     image 'quay.io/modac/foswiki-extension-build-container'
                     reuseNode true
-                    args '-v $WORKSPACE/deploy:/deploy --entrypoint=""'
+                    args '-u root:root -v $WORKSPACE/deploy:/deploy --entrypoint=""'
                     customWorkspace "/var/lib/jenkins/workspace/qwiki-build-extension/$BUILD_NUMBER"
                     alwaysPull true
                 }
@@ -38,7 +38,7 @@ pipeline {
         stage('Cleanup Workspace') {
             agent any
             steps {
-                sh "rm -r ./${BUILD_NUMBER}"
+                sh "echo rm -r ./${BUILD_NUMBER}"
             }
         }
     }
