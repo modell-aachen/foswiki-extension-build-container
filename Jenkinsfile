@@ -3,12 +3,16 @@ pipeline {
       label "master"
     }
     environment {
+        BUILD_DIR = "/var/lib/jenkins/workspace/qwiki-build-extension"
         JOB_BUILD_DIR = "/var/lib/jenkins/workspace/qwiki-build-extension/$BUILD_NUMBER"
     }
     stages {
         stage('Prepare Workspace') {
             steps {
               sh '''
+                if [ ! -d "${BUILD_DIR}" ]; then
+                  mkdir ${BUILD_DIR};
+                fi
                 if [ ! -d "${JOB_BUILD_DIR}" ]; then
                   mkdir ${JOB_BUILD_DIR};
                 fi
@@ -19,7 +23,7 @@ pipeline {
             agent {
                 docker {
                     image 'quay.io/modac/foswiki-extension-build-container'
-                    args '-e DEPLOY_PATH=$JOB_BUILD_DIR -v $JOB_BUILD_DIR:$JOB_BUILD_DIR:rw,z --entrypoint=""'
+                    args '-e DEPLOY_PATH=$JOB_BUILD_DIR -v $BUILD_DIR:$BUILD_DIR:rw,z --entrypoint=""'
                     reuseNode true
                 }
             }
