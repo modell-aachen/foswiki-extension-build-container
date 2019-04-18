@@ -19,8 +19,7 @@ pipeline {
             agent {
                 docker {
                     image 'quay.io/modac/foswiki-extension-build-container'
-                    args '-e DEPLOY_PATH=$JOB_BUILD_DIR --entrypoint=""'
-                    alwaysPull true
+                    args '-e DEPLOY_PATH=$JOB_BUILD_DIR -v $JOB_BUILD_DIR:$JOB_BUILD_DIR:rw,z --entrypoint=""'
                     reuseNode true
                 }
             }
