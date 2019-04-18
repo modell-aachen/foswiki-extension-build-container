@@ -1,3 +1,7 @@
+node {
+  currentBuild.displayName = "#${BUILD_NUMBER} | ${RELEASE_STRING} | ${GITHUB_REPOSITORY}"
+}
+
 pipeline {
     agent {
       label "master"
