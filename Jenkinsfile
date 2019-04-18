@@ -11,7 +11,6 @@ pipeline {
               sh '''
                 if [ ! -d "${JOB_BUILD_DIR}" ]; then
                   mkdir ${JOB_BUILD_DIR};
-                  mkdir ${JOB_BUILD_DIR}/deploy;
                 fi
               '''
             }
@@ -20,7 +19,7 @@ pipeline {
             agent {
                 docker {
                     image 'quay.io/modac/foswiki-extension-build-container'
-                    args '-e DEPLOY_PATH=$JOB_BUILD_DIR/deploy --entrypoint=""'
+                    args '-e DEPLOY_PATH=$JOB_BUILD_DIR --entrypoint=""'
                     alwaysPull true
                     reuseNode true
                 }
@@ -41,10 +40,8 @@ pipeline {
             steps {
                 dir(JOB_BUILD_DIR) {
                   sh '''
-                    cd deploy;
-                    tar zcf ../build.tar.gz *.tgz *_installer metadata.json;
-                    cd ..;
-                    curl -i -H \"rms-auth-token: ${RMS_AUTH_TOKEN}\" -F \"build=@build.tar.gz\" \"${UPLOAD_DESTINATION}?buildId=${BUILD_ID}\";
+                    tar zcf build.tar.gz *.tgz *_installer metadata.json;
+                    curl --fail -i -H \"rms-auth-token: ${RMS_AUTH_TOKEN}\" -F \"build=@build.tar.gz\" \"${UPLOAD_DESTINATION}?buildId=${BUILD_ID}\";
                   '''
                 }
             }
