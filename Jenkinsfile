@@ -49,6 +49,7 @@ pipeline {
         stage('Cleanup Workspace') {
             steps {
                 sh "rm -r ${JOB_BUILD_DIR}"
+                sh "rm -r ${JOB_BUILD_DIR}@tmp"
             }
         }
     }
