@@ -4,7 +4,7 @@ ENV FOSWIKI_LIBS /src/wiki-lib/lib/
 ENV BUILD_PATH /build
 ENV DEPLOY_PATH /deploy
 
-RUN useradd -m -u 999 builduser
+RUN useradd -m -u 113 builduser
 RUN mkdir /src
 RUN mkdir /build
 RUN mkdir /deploy
