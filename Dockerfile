@@ -3,6 +3,7 @@ FROM node:8.16.0-jessie
 ENV FOSWIKI_LIBS /src/wiki-lib/lib/
 ENV BUILD_PATH /build
 ENV DEPLOY_PATH /deploy
+ENV PATH="~/.yarn/bin:$PATH"
 
 RUN useradd -m -u 113 builduser
 RUN mkdir /src
