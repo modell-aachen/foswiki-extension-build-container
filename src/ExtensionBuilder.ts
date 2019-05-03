@@ -97,17 +97,6 @@ class ExtensionBuilder {
             });
         });
     }
-    async getComponentDependenciesFilePath() {
-        const self = this;
-        return new Promise<string>((resolve, reject) => {
-            glob(`${self.path}/**/${self.name}/DEPENDENCIES`, (err, matches) => {
-                if(err){
-                    reject(err);
-                }
-                resolve(matches[0]);
-            });
-        });
-    }
     async getComponentBuildCommand(){
         const pmFilePath = path.dirname(await this.findExtensionMainFile());
         return `perl ${pmFilePath}/${this.name}/build.pl release`;
@@ -117,19 +106,7 @@ class ExtensionBuilder {
 
         await this.copyFile(componentPath, this.outPath, `${this.name}.tgz`);
         await this.copyFile(componentPath, this.outPath, `${this.name}_installer`);
-        await this.copyFile(componentPath, this.outPath, `${this.name}.txt`);
         await this.copyFile(componentPath, this.outPath, 'metadata.json');
-
-        let dependenciesFilePath;
-        try {
-            dependenciesFilePath = await this.getComponentDependenciesFilePath();
-        } catch(_) {
-            dependenciesFilePath = "";
-        }
-
-        if(dependenciesFilePath) {
-            await this.copyFile(path.dirname(dependenciesFilePath), this.outPath, `DEPENDENCIES`);
-        }
     }
     async copyFile(srcdir: string, dstdir: string, file: string) {
         return new Promise((resolve, reject) => {
