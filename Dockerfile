@@ -1,4 +1,4 @@
-FROM node:8.15.1-stretch
+FROM node:8.16.0-jessie
 
 ENV FOSWIKI_LIBS /src/wiki-lib/lib/
 ENV BUILD_PATH /build
