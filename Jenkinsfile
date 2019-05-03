@@ -40,15 +40,23 @@ pipeline {
                 }
             }
         }
-        stage('Upload to RMS') {
+        stage('Upload to gcloud') {
+            steps {
+                dir(JOB_BUILD_DIR) {
+                  sh '''
+                    gsutil -m cp -r . \"gs://${GCLOUD_BUCKET}/${GITHUB_REF}/${GITHUB_REPOSITORY}\"
+                  '''
+                }
+            }
+        }
+        stage('Notify RMS') {
             environment {
                 RMS_AUTH_TOKEN = credentials('6a6cdfed-3d05-4bc2-a45e-36190c5769cc')
             }
             steps {
                 dir(JOB_BUILD_DIR) {
                   sh '''
-                    tar zcf build.tar.gz *.tgz *_installer metadata.json;
-                    curl --fail -i -H \"rms-auth-token: ${RMS_AUTH_TOKEN}\" -F \"build=@build.tar.gz\" \"${UPLOAD_DESTINATION}?buildId=${BUILD_ID}\";
+                    curl --fail -i -H \"rms-auth-token: ${RMS_AUTH_TOKEN}\" \"${UPLOAD_DESTINATION}?buildId=${BUILD_ID}\";
                   '''
                 }
             }
