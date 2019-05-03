@@ -56,7 +56,7 @@ pipeline {
             steps {
                 dir(JOB_BUILD_DIR) {
                   sh '''
-                    curl --fail -i -H \"rms-auth-token: ${RMS_AUTH_TOKEN}\" \"${UPLOAD_DESTINATION}?buildId=${BUILD_ID}\";
+                    curl --fail -X POST -i -H \"rms-auth-token: ${RMS_AUTH_TOKEN}\" \"${UPLOAD_DESTINATION}?buildId=${BUILD_ID}\";
                   '''
                 }
             }
