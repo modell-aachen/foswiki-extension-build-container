@@ -72,7 +72,7 @@ class ExtensionBuilder {
 
         try {
             const environment = this.getBuildEnv();
-            await this.executeExtensionBuildCommand(componentBuildCommand, { cwd: componentRootPath, env: environment });
+            await this.executeExtensionBuildCommand(componentBuildCommand, { cwd: componentRootPath, env: environment, maxBuffer: 1024 * 500 });
         } catch(reason) {
             throw(new Error(reason));
         }
