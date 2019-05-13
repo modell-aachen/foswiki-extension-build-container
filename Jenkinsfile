@@ -56,7 +56,7 @@ pipeline {
             steps {
                 dir(JOB_BUILD_DIR) {
                   sh '''
-                    curl --fail -X POST -i -H \"rms-auth-token: ${RMS_AUTH_TOKEN}\" \"${UPLOAD_DESTINATION}?buildId=${BUILD_ID}\";
+                    curl --fail -X POST -i -H \"rms-auth-token: ${RMS_AUTH_TOKEN}\" \"${UPLOAD_DESTINATION}?checkoutTarget=${GITHUB_REF}\";
                   '''
                 }
             }
@@ -66,6 +66,11 @@ pipeline {
       always {
           sh "rm -r ${JOB_BUILD_DIR}"
           sh "rm -r ${JOB_BUILD_DIR}@tmp"
+      }
+      failure {
+          sh '''
+            curl --fail -X POST -i -H \"rms-auth-token: ${RMS_AUTH_TOKEN}\" \"${FAILURE_DESTINATION}?checkoutTarget=${GITHUB_REF}\";
+          '''
       }
     }
 }
