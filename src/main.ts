@@ -65,6 +65,7 @@ const main = async () => {
         foswikiLibPath: foswikiLibPath,
         releaseString: releaseString,
         outPath: deployPath,
+        githubAuthToken: githubAuthToken,
     });
     console.info("Creating build...");
     await extensionBuilder.build();

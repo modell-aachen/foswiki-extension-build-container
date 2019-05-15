@@ -15,6 +15,7 @@ type ExtensionBuilderOptions = {
     foswikiLibPath: string,
     releaseString: string,
     outPath: string,
+    githubAuthToken: string,
 }
 
 class ExtensionBuilder {
@@ -23,14 +24,16 @@ class ExtensionBuilder {
     path: string;
     foswikiLibPath: string;
     releaseString: string;
-    outPath: string
-    constructor({name, path, ref, foswikiLibPath, outPath, releaseString}: ExtensionBuilderOptions) {
+    outPath: string;
+    githubAuthToken: string;
+    constructor({name, path, ref, foswikiLibPath, outPath, releaseString, githubAuthToken}: ExtensionBuilderOptions) {
         this.name = name;
         this.path = path;
         this.ref = ref;
         this.releaseString = releaseString;
         this.foswikiLibPath = foswikiLibPath;
         this.outPath = outPath
+        this.githubAuthToken = githubAuthToken;
     }
     async build() {
         await this.prepareComponentForBuild();
@@ -83,6 +86,7 @@ class ExtensionBuilder {
     getBuildEnv() {
         const environment = Object.assign({}, process.env);
         environment.FOSWIKI_LIBS = this.foswikiLibPath;
+        environment.GITHUB_TOKEN = this.githubAuthToken;
         delete environment.NODE_ENV; // this might be set to 'production', confusing the build process
         return environment;
     }
