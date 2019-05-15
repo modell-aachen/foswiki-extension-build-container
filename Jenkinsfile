@@ -30,6 +30,7 @@ pipeline {
                     image 'quay.io/modac/foswiki-extension-build-container'
                     args '-e DEPLOY_PATH=$JOB_BUILD_DIR -v $BUILD_DIR:$BUILD_DIR:rw,z --entrypoint=""'
                     reuseNode true
+                    alwaysPull true
                 }
             }
             environment {
