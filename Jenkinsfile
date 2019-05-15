@@ -9,6 +9,7 @@ pipeline {
     environment {
         BUILD_DIR = "/var/lib/jenkins/workspace/qwiki-build-extension"
         JOB_BUILD_DIR = "/var/lib/jenkins/workspace/qwiki-build-extension/$BUILD_NUMBER"
+        RMS_AUTH_TOKEN = credentials('6a6cdfed-3d05-4bc2-a45e-36190c5769cc')
     }
     stages {
         stage('Prepare Workspace') {
@@ -50,9 +51,6 @@ pipeline {
             }
         }
         stage('Notify RMS') {
-            environment {
-                RMS_AUTH_TOKEN = credentials('6a6cdfed-3d05-4bc2-a45e-36190c5769cc')
-            }
             steps {
                 dir(JOB_BUILD_DIR) {
                   sh '''
