@@ -43,9 +43,17 @@ pipeline {
             }
         }
         stage('Upload to gcloud') {
+            agent {
+                docker {
+                    google/cloud-sdk: latest
+                    alwaysPull true
+                }
+            }
             steps {
-                dir(JOB_BUILD_DIR) {
-                  sh '''
+                withCredentials([file(credentialsId: 'gcloud-modac-rms-terraform', variable: 'SERVICE_ACCOUNT_FILE')]) {
+                    sh "gcloud auth activate-service-account --key-file=$SERVICE_ACCOUNT_FILE"
+                }
+                sh '''
                     gsutil -m cp -r . \"gs://${GCLOUD_BUCKET}/${GITHUB_REF}/${GITHUB_REPOSITORY}\"
                   '''
                 }
