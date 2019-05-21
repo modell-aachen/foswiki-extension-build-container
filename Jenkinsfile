@@ -45,7 +45,7 @@ pipeline {
         stage('Upload to gcloud') {
             agent {
                 docker {
-                    google/cloud-sdk: latest
+                    image 'sdk.cloud.google.com'
                     alwaysPull true
                 }
             }
