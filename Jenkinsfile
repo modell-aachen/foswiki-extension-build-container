@@ -56,7 +56,6 @@ pipeline {
                 sh '''
                     gsutil -m cp -r . \"gs://${GCLOUD_BUCKET}/${GITHUB_REF}/${GITHUB_REPOSITORY}\"
                   '''
-                }
             }
         }
         stage('Notify RMS') {
