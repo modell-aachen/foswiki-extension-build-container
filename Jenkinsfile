@@ -42,6 +42,14 @@ pipeline {
                 }
             }
         }
+        stage('Authorize Service Account') {
+            steps {
+                withCredentials([file(credentialsId: 'gcloud-modac-rms-terraform', variable: 'SERVICE_ACCOUNT_FILE')]) {
+                    sh "gcloud auth activate-service-account --key-file=$SERVICE_ACCOUNT_FILE"
+                }
+                sh "gcloud config set project modac-rms"
+            }
+        }
         stage('Upload to gcloud') {
             agent {
                 docker {
@@ -50,12 +58,7 @@ pipeline {
                 }
             }
             steps {
-                withCredentials([file(credentialsId: 'gcloud-modac-rms-terraform', variable: 'SERVICE_ACCOUNT_FILE')]) {
-                    sh "gcloud auth activate-service-account --key-file=$SERVICE_ACCOUNT_FILE"
-                }
-                sh '''
-                    gsutil -m cp -r . \"gs://${GCLOUD_BUCKET}/${GITHUB_REF}/${GITHUB_REPOSITORY}\"
-                  '''
+                sh "gsutil -m cp -r . \"gs://${GCLOUD_BUCKET}/${GITHUB_REF}/${GITHUB_REPOSITORY}\""
             }
         }
         stage('Notify RMS') {
