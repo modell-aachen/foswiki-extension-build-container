@@ -46,11 +46,13 @@ pipeline {
             agent {
                 docker {
                     image 'google/cloud-sdk:alpine'
+                    label 'docker'
+                    args '-u root:root'
                     alwaysPull true
                 }
             }
             steps {
-                withCredentials([file(credentialsId: 'gcredentials.json', variable: 'SERVICE_ACCOUNT_FILE')]) {
+                withCredentials([file(credentialsId: '87bc00fa-3063-4693-851c-63e86800eee7', variable: 'SERVICE_ACCOUNT_FILE')]) {
                     sh "gcloud auth activate-service-account --key-file=$SERVICE_ACCOUNT_FILE"
                 }
                 sh "gsutil -m cp -r . \"gs://${GCLOUD_BUCKET}/${GITHUB_REF}/${GITHUB_REPOSITORY}\""
