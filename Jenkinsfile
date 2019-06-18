@@ -3,14 +3,14 @@ node {
     def JOB_BUILD_DIR = "/var/lib/jenkins/workspace/qwiki-build-extension/$BUILD_NUMBER"
 
     stage('Prepare Workspace') {
-        sh '''
-            if [ ! -d "${BUILD_DIR}" ]; then
+        sh """
+            if [ ! -d \"${BUILD_DIR}\" ]; then
                 mkdir ${BUILD_DIR};
             fi
-            if [ ! -d "${JOB_BUILD_DIR}" ]; then
+            if [ ! -d \"${JOB_BUILD_DIR}\" ]; then
                 mkdir ${JOB_BUILD_DIR};
             fi
-        '''
+        """
     }
 
     stage('Run foswiki extension build container', label: 'docker') {
