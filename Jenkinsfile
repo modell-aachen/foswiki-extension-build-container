@@ -53,7 +53,7 @@ pipeline {
             }
             steps {
                 //staging: 87bc00fa-3063-4693-851c-63e86800eee7   prod: c949741f-f995-4faf-8f04-e1995eee99db
-                withCredentials([file(credentialsId: '87bc00fa-3063-4693-851c-63e86800eee7', variable: 'SERVICE_ACCOUNT_FILE')]) {
+                withCredentials([file(credentialsId: 'c949741f-f995-4faf-8f04-e1995eee99db', variable: 'SERVICE_ACCOUNT_FILE')]) {
                     sh "gcloud auth activate-service-account --key-file=$SERVICE_ACCOUNT_FILE"
                 }
                 sh "gsutil -m cp -r . \"gs://${GCLOUD_BUCKET}/${GITHUB_REF}/${GITHUB_REPOSITORY}\""
