@@ -4,7 +4,7 @@ node {
 
 pipeline {
     agent {
-      label "master"
+      label "docker"
     }
     environment {
         BUILD_DIR = "/var/lib/jenkins/workspace/qwiki-build-extension"
@@ -43,12 +43,20 @@ pipeline {
             }
         }
         stage('Upload to gcloud') {
-            steps {
-                dir(JOB_BUILD_DIR) {
-                  sh '''
-                    gsutil -m cp -r . \"gs://${GCLOUD_BUCKET}/${GITHUB_REF}/${GITHUB_REPOSITORY}\"
-                  '''
+            agent {
+                docker {
+                    image 'google/cloud-sdk:alpine'
+                    label 'docker'
+                    args '-u root:root'
+                    alwaysPull true
                 }
+            }
+            steps {
+                //staging: 87bc00fa-3063-4693-851c-63e86800eee7   prod: c949741f-f995-4faf-8f04-e1995eee99db
+                withCredentials([file(credentialsId: '87bc00fa-3063-4693-851c-63e86800eee7', variable: 'SERVICE_ACCOUNT_FILE')]) {
+                    sh "gcloud auth activate-service-account --key-file=$SERVICE_ACCOUNT_FILE"
+                }
+                sh "gsutil -m cp -r . \"gs://${GCLOUD_BUCKET}/${GITHUB_REF}/${GITHUB_REPOSITORY}\""
             }
         }
         stage('Notify RMS') {
