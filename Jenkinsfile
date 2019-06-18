@@ -30,7 +30,6 @@ pipeline {
                     image 'quay.io/modac/foswiki-extension-build-container'
                     args '-e DEPLOY_PATH=$JOB_BUILD_DIR -v $BUILD_DIR:$BUILD_DIR:rw,z --entrypoint=""'
                     reuseNode true
-                    alwaysPull true
                 }
             }
             environment {
@@ -48,7 +47,6 @@ pipeline {
                     image 'google/cloud-sdk:alpine'
                     label 'docker'
                     args '-u root:root'
-                    alwaysPull true
                 }
             }
             steps {
@@ -62,9 +60,9 @@ pipeline {
         stage('Notify RMS') {
             steps {
                 dir(JOB_BUILD_DIR) {
-                  sh '''
+                  sh """
                     curl --fail -X POST -i -H \"rms-auth-token: ${RMS_AUTH_TOKEN}\" \"${UPLOAD_DESTINATION}?checkoutTarget=${GITHUB_REF}&component=${COMPONENT_ID}\";
-                  '''
+                  """
                 }
             }
         }
@@ -75,9 +73,9 @@ pipeline {
           sh "rm -r ${JOB_BUILD_DIR}@tmp"
       }
       failure {
-          sh '''
+          sh """
             curl --fail -X POST -i -H \"rms-auth-token: ${RMS_AUTH_TOKEN}\" \"${FAILURE_DESTINATION}?checkoutTarget=${GITHUB_REF}&component=${COMPONENT_ID}\";
-          '''
+          """
       }
     }
 }
