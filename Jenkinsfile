@@ -4,7 +4,7 @@ node {
 
 pipeline {
     agent {
-      label "master"
+      label "docker"
     }
     environment {
         BUILD_DIR = "/var/lib/jenkins/workspace/qwiki-build-extension"
