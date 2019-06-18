@@ -1,6 +1,7 @@
 node {
-    def BUILD_DIR = "/var/lib/jenkins/workspace/qwiki-build-extension"
-    def JOB_BUILD_DIR = "/var/lib/jenkins/workspace/qwiki-build-extension/$BUILD_NUMBER"
+    def workspace = pwd()
+    def BUILD_DIR = "${workspace}/qwiki-build-extension"
+    def JOB_BUILD_DIR = "${workspace}/qwiki-build-extension/$BUILD_NUMBER"
 
     stage('Prepare Workspace') {
         sh """
@@ -13,7 +14,7 @@ node {
         """
     }
 
-    stage('Run foswiki extension build container', label: 'docker') {
+    stage('Run foswiki extension build container') {
         docker.image('quay.io/modac/foswiki-extension-build-container').inside('-e DEPLOY_PATH=$JOB_BUILD_DIR -v $BUILD_DIR:$BUILD_DIR:rw,z --entrypoint=""') { c ->
             dir(JOB_BUILD_DIR) {
                 withCredentials([string(credentialsId: '87e330a0-ce35-4301-a524-40d6141f355b', variable: 'GITHUB_AUTH_TOKEN')]) {
