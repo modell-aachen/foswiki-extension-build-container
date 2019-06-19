@@ -1,6 +1,6 @@
 #!groovy
 
-node {
+node ("docker") {
     def workspace = pwd()
     def BUILD_DIR = "${workspace}/qwiki-build-extension"
     def JOB_BUILD_DIR = "${workspace}/qwiki-build-extension/$BUILD_NUMBER"
