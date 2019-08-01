@@ -18,7 +18,7 @@ RUN chmod -R 777 /src
 RUN chmod -R 777 /build
 RUN chmod -R 777 /deploy
 USER builduser
-RUN yarn global add bower@1.8.0 grunt@1.0.1 uglify-js@3.1.2
+RUN yarn global add bower@1.8.8 grunt@1.0.1 uglify-js@3.1.2
 ENV PATH="/home/builduser/.yarn/bin:$PATH"
 
 WORKDIR /src/
