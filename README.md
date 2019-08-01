@@ -6,11 +6,11 @@ docker build -t foswiki-extension-build .
 
 ### Running the container:
 ```bash
-docker run -it -v ~/deploy:/deploy --env-file .env foswiki-extension-build
+docker run -it -v <deployment path>:/deploy --env-file .env foswiki-extension-build
 ```
 
 ### Running the container for development
 ```bash
 yarn watch
-docker run -it -v ~/deploy:/deploy -v ~/foswiki-extension-build-container:/usr/src --env-file .env foswiki-extension-build
+docker run -it -v <deployment path>:/deploy -v dist:/src/dist --env-file .env foswiki-extension-build
 ```
