@@ -22,10 +22,15 @@ node ("docker") {
 
       stage('Run foswiki extension build container') {
           docker.image('quay.io/modac/foswiki-extension-build-container').inside("-e DEPLOY_PATH=${JOB_BUILD_DIR} -v ${BUILD_DIR}:${BUILD_DIR}:rw,z --entrypoint=\"\"") { c ->
-              dir(JOB_BUILD_DIR) {
-                  withCredentials([string(credentialsId: '87e330a0-ce35-4301-a524-40d6141f355b', variable: 'GITHUB_AUTH_TOKEN')]) {
-                      sh "node /src/dist/main.js"
-                  }
+              try {
+                dir(JOB_BUILD_DIR) {
+                    withCredentials([string(credentialsId: '87e330a0-ce35-4301-a524-40d6141f355b', variable: 'GITHUB_AUTH_TOKEN')]) {
+                        sh "node /src/dist/main.js"
+                    }
+                }
+              }catch( err ) {
+                sh "docker logs ${c.id}"
+                throw err
               }
           }
       }
