@@ -1,6 +1,6 @@
 steps:
-- name: 'gcr.io/cloud-builders/docker'
+- name: 'eu.gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/foswiki-extension-builder', '.']
 
 images:
-- 'gcr.io/$PROJECT_ID/foswiki-extension-builder'
+- 'eu.gcr.io/$PROJECT_ID/foswiki-extension-builder'
