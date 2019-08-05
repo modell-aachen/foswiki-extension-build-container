@@ -10,7 +10,7 @@ ENV FOSWIKI_LIBS /src/wiki-lib/lib/
 ENV BUILD_PATH /build
 ENV DEPLOY_PATH /deploy
 
-RUN useradd -m -u 113 builduser
+RUN useradd -m builduser
 RUN mkdir /src
 RUN mkdir /build
 RUN mkdir /deploy
@@ -26,4 +26,4 @@ COPY --chown=builduser:builduser . .
 RUN yarn
 RUN yarn build
 
-ENTRYPOINT yarn start
+ENTRYPOINT node /src/dist/main.js
