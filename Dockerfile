@@ -1,5 +1,7 @@
 FROM node:8.16.0-jessie
 
+RUN rm -f /etc/localtime
+RUN ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime
 RUN apt-get update
 RUN apt-get install -y apt-transport-https curl libcss-minifier-perl libjavascript-minifier-perl libjson-perl libcgi-session-perl zip vim build-essential default-jre default-jdk ant make libhtml-scrubber-perl
 RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
