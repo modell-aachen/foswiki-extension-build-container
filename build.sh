@@ -59,7 +59,6 @@ build-extension() {
 
     docker run -it \
         -v ${DEPLOY_DIRECTORY}:/deploy \
-        -u `id -u $USER`:`id -g $USER` \
         $DOCKER_MOUNT_LOCAL_REPO \
         -e GITHUB_REF \
         -e GITHUB_REPOSITORY \

@@ -15,7 +15,7 @@ const buildPath = process.env.BUILD_PATH || "";
 const deployPath = process.env.DEPLOY_PATH || "";
 const foswikiLibPath = process.env.FOSWIKI_LIBS || "";
 const releaseString = process.env.RELEASE_STRING || "";
-const hasLocalRepository = (process.env.HAS_LOCAL_REPOSITORY !== "") || false;
+const hasLocalRepository = !!process.env.HAS_LOCAL_REPOSITORY;
 
 const archiveDownloadUrl = `https://api.github.com/repos/${githubOrganization}/${repository}/tarball/${ref}`;
 const archiveDownloadPath = path.resolve(buildPath, 'archive.tar.gz');
