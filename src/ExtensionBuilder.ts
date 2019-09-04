@@ -4,7 +4,6 @@ import glob from 'glob';
 import child_process from 'child_process';
 import path from 'path';
 
-const exec = util.promisify(child_process.exec);
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 
@@ -81,7 +80,22 @@ class ExtensionBuilder {
         }
     }
     async executeExtensionBuildCommand(buildCommand: string, options: child_process.ExecOptions) {
-        await exec(buildCommand, options);
+        await new Promise((resolve, reject) => {
+            const build = child_process.exec(buildCommand, options);
+            if (!build.stdout || !build.stderr) {
+                return reject(new Error(`Could not execute '${buildCommand}'!`));
+            }
+            build.stdout.on('data', (data: string) => console.log(data));
+            build.stderr.on('data', (data: string) => console.error(data));
+            build.on('error', (err: string) => reject(new Error(err)));
+            build.on('close', (code: number) => {
+                if (code === 0) {
+                    resolve();
+                } else {
+                    reject(new Error(`Could not run build. Exit with ${code}`));
+                }
+            });
+        });
     }
     getBuildEnv() {
         const environment = Object.assign({}, process.env);
