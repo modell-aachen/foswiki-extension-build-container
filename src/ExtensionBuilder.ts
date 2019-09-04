@@ -4,7 +4,6 @@ import glob from 'glob';
 import child_process from 'child_process';
 import path from 'path';
 
-const { exec } = require('child_process');
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 
@@ -81,9 +80,11 @@ class ExtensionBuilder {
         }
     }
     async executeExtensionBuildCommand(buildCommand: string, options: child_process.ExecOptions) {
-        console.log(`execute extension build command: ${buildCommand}`);
         await new Promise((resolve, reject) => {
-            const build = exec(buildCommand, options);
+            const build = child_process.exec(buildCommand, options);
+            if (!build.stdout || !build.stderr) {
+                return reject(new Error(`Could not execute '${buildCommand}'!`));
+            }
             build.stdout.on('data', (data: string) => console.log(data));
             build.stderr.on('data', (data: string) => console.error(data));
             build.on('error', (err: string) => reject(new Error(err)));
