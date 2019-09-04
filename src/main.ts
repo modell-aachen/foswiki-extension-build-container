@@ -4,6 +4,7 @@ import axios from 'axios';
 import path from 'path';
 import { ExtensionBuilder } from './ExtensionBuilder';
 import tar from 'tar';
+import { execSync } from 'child_process';
 
 dotenv.config();
 const githubOrganization = process.env.GITHUB_ORGANIZATION || "";
@@ -14,6 +15,7 @@ const buildPath = process.env.BUILD_PATH || "";
 const deployPath = process.env.DEPLOY_PATH || "";
 const foswikiLibPath = process.env.FOSWIKI_LIBS || "";
 const releaseString = process.env.RELEASE_STRING || "";
+const hasLocalRepository = (process.env.HAS_LOCAL_REPOSITORY !== "") || false;
 
 const archiveDownloadUrl = `https://api.github.com/repos/${githubOrganization}/${repository}/tarball/${ref}`;
 const archiveDownloadPath = path.resolve(buildPath, 'archive.tar.gz');
@@ -51,12 +53,22 @@ const unzipSourceArchive = async (archivePath: string, outputPath: string) => {
     });
 }
 
+const copyRepoTo = (path: string) => {
+    execSync(`cp -rf /repo ${path}`);
+    execSync(`rm -rf ${path}/repo/.git`);
+    execSync(`find -L ${path} -type l -delete`);
+}
+
 const main = async () => {
-    console.info(`Starting: ${githubOrganization}/${repository} on ${ref}`);
-    console.info("Downloading source archive from Github...");
-    await downloadSourceArchive(archiveDownloadUrl, archiveDownloadPath);
-    console.info("Unzipping...");
-    await unzipSourceArchive(archiveDownloadPath, buildPath);
+    if (hasLocalRepository) {
+        copyRepoTo(buildPath);
+    } else {
+        console.info(`Starting: ${githubOrganization}/${repository} on ${ref}`);
+        console.info("Downloading source archive from Github...");
+        await downloadSourceArchive(archiveDownloadUrl, archiveDownloadPath);
+        console.info("Unzipping...");
+        await unzipSourceArchive(archiveDownloadPath, buildPath);
+    }
 
     const extensionBuilder = new ExtensionBuilder({
         name: repository,
