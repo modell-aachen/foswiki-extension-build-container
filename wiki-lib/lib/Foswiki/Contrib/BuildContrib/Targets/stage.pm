@@ -17,6 +17,7 @@ package Foswiki::Contrib::Build;
 
 use strict;
 use JSON;
+use Thread::Pool;
 
 our @stageFilters;
 
@@ -63,6 +64,7 @@ sub target_stage {
 
     if ( $this->{other_modules} ) {
         my $libs = join( ':', @INC );
+        my @commands = ();
         foreach my $module ( @{ $this->{other_modules} } ) {
 
             die
@@ -75,9 +77,21 @@ sub target_stage {
             my $cmd =
 "export FOSWIKI_HOME=$this->{tmpDir}; export FOSWIKI_LIBS=$libs; export TWIKI_HOME=$this->{tmpDir}; export TWIKI_LIBS=$libs; cd $Foswiki::Contrib::Build::basedir/$module; perl build.pl handsoff_install";
 
-            #warn "***** running $cmd \n";
-            print `$cmd`;
+            push @commands, $cmd;
         }
+
+        my $pool = Thread::Pool->new({
+           workers => 3,
+           do => sub {
+               my ($command) = @_;
+               print `$command`;
+           },
+        });
+
+        foreach my $command ( @commands ) {
+           $pool->job($command);
+        }
+        $pool->shutdown;
     }
     $this->generate_metadatafile();
 }
