@@ -25,6 +25,9 @@ RUN rm -f /etc/localtime \
     && echo "deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main" | tee /etc/apt/sources.list.d/ansible.list \
     && apt-get update && apt-get install -y yarn ansible
 
+RUN curl -L http://cpanmin.us | perl - --self-upgrade
+RUN cpanm Thread::Pool
+
 ENV FOSWIKI_LIBS /src/wiki-lib/lib/
 ENV BUILD_PATH /build
 ENV DEPLOY_PATH /deploy
