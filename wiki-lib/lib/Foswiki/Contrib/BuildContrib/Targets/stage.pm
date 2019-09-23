@@ -64,7 +64,7 @@ sub target_stage {
 
     if ( $this->{other_modules} ) {
         my $libs = join( ':', @INC );
-        my @commands = ();
+        my @builds = ();
         foreach my $module ( @{ $this->{other_modules} } ) {
 
             die
@@ -77,21 +77,22 @@ sub target_stage {
             my $cmd =
 "export FOSWIKI_HOME=$this->{tmpDir}; export FOSWIKI_LIBS=$libs; export TWIKI_HOME=$this->{tmpDir}; export TWIKI_LIBS=$libs; cd $Foswiki::Contrib::Build::basedir/$module; perl build.pl handsoff_install";
 
-            push @commands, $cmd;
+            push @builds, { command => $cmd, name => $module };
         }
 
         my $pool = Thread::Pool->new({
            workers => 3,
            do => sub {
-               my ( $command ) = @_;
-               my $output = `$command 2>&1`;
+               my ( $build ) = @_;
+               my $output = `$build->{command}`;
 
-               print "-------------------------------\n$output";
+               print "# \e[1;31mmodule:\e[0m $build->{name}\n";
+               print $output;
            },
         });
 
-        foreach my $command ( @commands ) {
-            $pool->job($command);
+        foreach my $build ( @builds ) {
+            $pool->job($build);
         }
         $pool->shutdown;
     }
