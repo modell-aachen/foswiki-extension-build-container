@@ -3,7 +3,22 @@ FROM node:8.16.0-jessie
 RUN rm -f /etc/localtime \
     && ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime \
     && apt-get update \
-    && apt-get install -y apt-transport-https curl libcss-minifier-perl libjavascript-minifier-perl libjson-perl libcgi-session-perl zip vim build-essential default-jre default-jdk ant make libhtml-scrubber-perl \
+    && apt-get install -y \
+            ant \
+            apt-transport-https \
+            build-essential \
+            curl \
+            default-jdk \
+            default-jre \
+            libcgi-pm-perl \
+            libcgi-session-perl \
+            libcss-minifier-perl \
+            libhtml-scrubber-perl \
+            libjavascript-minifier-perl \
+            libjson-perl \
+            make \
+            vim \
+            zip \
     && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
     && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
     && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 93C4A3FD7BB9C367 \

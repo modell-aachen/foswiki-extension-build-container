@@ -56,6 +56,8 @@ build-extension() {
         esac
     done
 
+        # reset built-in SECONDS function
+    SECONDS=0
 
     docker run -it \
         -v ${DEPLOY_DIRECTORY}:/deploy \
@@ -64,6 +66,9 @@ build-extension() {
         -e GITHUB_REPOSITORY \
         -e HAS_LOCAL_REPOSITORY \
         $IMAGE_NAME
+
+    duration=$SECONDS
+    printf "\e[1;31mTime:     %d:%02d\e[0m\n" "$(($duration / 60))" "$(($duration % 60))"
 }
 
 _build_docker_image() {
