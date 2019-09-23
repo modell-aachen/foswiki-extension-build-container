@@ -56,7 +56,7 @@ build-extension() {
         esac
     done
 
-
+        # reset built-in SECONDS function
     SECONDS=0
 
     docker run -it \
