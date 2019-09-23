@@ -83,13 +83,15 @@ sub target_stage {
         my $pool = Thread::Pool->new({
            workers => 3,
            do => sub {
-               my ($command) = @_;
-               print `$command`;
+               my ( $command ) = @_;
+               my $output = `$command 2>&1`;
+
+               print "-------------------------------\n$output";
            },
         });
 
         foreach my $command ( @commands ) {
-           $pool->job($command);
+            $pool->job($command);
         }
         $pool->shutdown;
     }
