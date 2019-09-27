@@ -8,6 +8,7 @@ build-extension() {
             "    -l, --local        use local repository\n" \
             "    -b, --branch       branch to build repo. If not specified, .env is used\n" \
             "    -o, --output       deploy directory\n" \
+            "    -c, --cores        number of cpu cores\n" \
             "        --docker-image builds the docker image\n" \
             "        --cke          build local CKEditorPlugin\n" \
             "    -h, --help         shows this help message\n"
@@ -16,10 +17,11 @@ build-extension() {
 
 
     export $(egrep -v '^#' .env | xargs)
+    export CORES=3
     local deploy_directory=$REPOS_DIRECTORY/deploy
     local image_name=foswiki-extension-build
 
-    OPTS=`getopt -o lb:o:h --long local,cke,branch:,output:,docker-image,help -- "$@"`
+    OPTS=`getopt -o c:lb:o:h --long cores:,local,cke,branch:,output:,docker-image,help -- "$@"`
     if [ $? != 0 ] ; then echo "Failed parsing options." >&2 ; exit 1 ; fi
 
     eval set -- "$OPTS"
@@ -34,6 +36,9 @@ build-extension() {
                 shift ;;
             -o | --output )
                 eval deploy_directory=$2
+                shift 2 ;;
+            -c | --cores )
+                CORES=$2
                 shift 2 ;;
             --cke )
                 export HAS_LOCAL_CKE=1
@@ -81,6 +86,8 @@ build-extension() {
         -e GITHUB_REPOSITORY \
         -e HAS_LOCAL_REPOSITORY \
         -e HAS_LOCAL_CKE \
+        -e CORES \
+        --rm \
         $image_name
 
     duration=$SECONDS

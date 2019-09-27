@@ -201,6 +201,7 @@ sub new {
             project => $project,
             target  => 'test',
             basedir => $basedir,
+            cores => 2,
         },
         $class
     );
@@ -216,6 +217,11 @@ sub new {
         }
         $n++;
     }
+
+    if ( grep(/^--cores=(\d+)$/, @ARGV) ) {
+        $this->{cores} = $1;
+    }
+
     if ( $this->{-v} ) {
         print 'Building in ',      $buildpldir, "\n";
         print 'Root module is  ',  $rootModule, "\n" if $rootModule;

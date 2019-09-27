@@ -81,7 +81,7 @@ sub target_stage {
         }
 
         my $pool = Thread::Pool->new({
-           workers => 3,
+           workers => $this->{cores},
            do => sub {
                my ( $build ) = @_;
                my $output = `$build->{command}`;
