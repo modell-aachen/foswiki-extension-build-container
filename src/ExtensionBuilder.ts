@@ -15,6 +15,8 @@ type ExtensionBuilderOptions = {
     releaseString: string,
     outPath: string,
     githubAuthToken: string,
+    isRootPath: boolean,
+    flags: string,
 }
 
 class ExtensionBuilder {
@@ -25,7 +27,9 @@ class ExtensionBuilder {
     releaseString: string;
     outPath: string;
     githubAuthToken: string;
-    constructor({name, path, ref, foswikiLibPath, outPath, releaseString, githubAuthToken}: ExtensionBuilderOptions) {
+    isRootPath: boolean;
+    flags: string;
+    constructor({name, path, ref, foswikiLibPath, outPath, releaseString, githubAuthToken, isRootPath, flags}: ExtensionBuilderOptions) {
         this.name = name;
         this.path = path;
         this.ref = ref;
@@ -33,6 +37,8 @@ class ExtensionBuilder {
         this.foswikiLibPath = foswikiLibPath;
         this.outPath = outPath
         this.githubAuthToken = githubAuthToken;
+        this.isRootPath = isRootPath;
+        this.flags = flags;
     }
     async build() {
         await this.prepareComponentForBuild();
@@ -60,6 +66,9 @@ class ExtensionBuilder {
     }
     async getComponentRootPath() {
         const self = this;
+        if (self.isRootPath) {
+            return self.path;
+        }
         return new Promise<string>((resolve, reject) => {
             glob(`${self.path}/*/`, (err, matches) => {
                 if(err){
@@ -117,7 +126,7 @@ class ExtensionBuilder {
     }
     async getComponentBuildCommand(){
         const pmFilePath = path.dirname(await this.findExtensionMainFile());
-        return `perl ${pmFilePath}/${this.name}/build.pl release`;
+        return `perl ${pmFilePath}/${this.name}/build.pl release ${this.flags}`;
     }
     async deployToOutPath() {
         const componentPath = await this.getComponentRootPath();

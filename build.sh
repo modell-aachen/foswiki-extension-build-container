@@ -4,44 +4,42 @@ build-extension() {
 
     usage() {
         printf -v text "%s" \
-            "build.sh [OPTION...]\n" \
-            "    -r, --repo         repo from github repository. Token and user have to be set.\n" \
+            "build.sh <extension repo> [OPTION...]\n" \
+            "    -l, --local        use local repository\n" \
             "    -b, --branch       branch to build repo. If not specified, .env is used\n" \
-            "    -p, --path         path to local repo. If set, github repo is ignored\n" \
             "    -o, --output       deploy directory\n" \
             "        --docker-image builds the docker image\n" \
+            "        --cke          build local CKEditorPlugin\n" \
             "    -h, --help         shows this help message\n"
         printf "$text"
     }
 
 
     export $(egrep -v '^#' .env | xargs)
-    IMAGE_NAME=foswiki-extension-build
+    local deploy_directory=$REPOS_DIRECTORY/deploy
+    local image_name=foswiki-extension-build
 
-    OPTS=`getopt -o r:b:p:o:h --long repo:,branch:,path:,output:,docker-image,help -- "$@"`
+    OPTS=`getopt -o lb:o:h --long local,cke,branch:,output:,docker-image,help -- "$@"`
     if [ $? != 0 ] ; then echo "Failed parsing options." >&2 ; exit 1 ; fi
 
     eval set -- "$OPTS"
 
     while true; do
         case "$1" in
-            -r | --repo )
-                GITHUB_REPOSITORY=$2
-                shift 2 ;;
             -b | --branch )
                 GITHUB_REF=$2
                 shift 2 ;;
-            -p | --path )
+            -l | --local )
                 export HAS_LOCAL_REPOSITORY=1
-                eval LOCAL_REPOSITORY=$2
-                DOCKER_MOUNT_LOCAL_REPO="-v $LOCAL_REPOSITORY:/repo"
-                GITHUB_REPOSITORY=`basename $LOCAL_REPOSITORY`
-                shift 2 ;;
+                shift ;;
             -o | --output )
-                eval DEPLOY_DIRECTORY=$2
+                eval deploy_directory=$2
                 shift 2 ;;
+            --cke )
+                export HAS_LOCAL_CKE=1
+                shift ;;
             --docker-image )
-                _build_docker_image $IMAGE_NAME
+                _build_docker_image $image_name
                 return;
                 shift ;;
             -h | --help )
@@ -56,24 +54,42 @@ build-extension() {
         esac
     done
 
-        # reset built-in SECONDS function
+    shift $(expr $OPTIND - 1 )
+    GITHUB_REPOSITORY=$1
+
+    if [ "$HAS_LOCAL_REPOSITORY" = 1 ] ; then
+        local docker_mount_local_repo="-v $REPOS_DIRECTORY/$GITHUB_REPOSITORY:/repo"
+    fi
+
+    if [ ! -d "$deploy_directory" ] ; then
+        mkdir "$deploy_directory"
+        chmod 777 -R "$deploy_directory"
+    fi
+
+    if [ "$HAS_LOCAL_CKE" = 1 ] ; then
+        local userbinding="-u `id -u $USER`:`id -g $USER`"
+    fi
+
+    # reset built-in SECONDS function
     SECONDS=0
 
     docker run -it \
-        -v ${DEPLOY_DIRECTORY}:/deploy \
-        $DOCKER_MOUNT_LOCAL_REPO \
+        -v ${deploy_directory}:/deploy \
+        $userbinding \
+        $docker_mount_local_repo \
         -e GITHUB_REF \
         -e GITHUB_REPOSITORY \
         -e HAS_LOCAL_REPOSITORY \
-        $IMAGE_NAME
+        -e HAS_LOCAL_CKE \
+        $image_name
 
     duration=$SECONDS
     printf "\e[1;31mTime:     %d:%02d\e[0m\n" "$(($duration / 60))" "$(($duration % 60))"
 }
 
 _build_docker_image() {
-    IMAGE_NAME=$1
-    docker build -t $IMAGE_NAME .
+    local image_name=$1
+    docker build -t $image_name .
 }
 
 build-extension $@
