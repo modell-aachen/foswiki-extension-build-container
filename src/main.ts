@@ -17,6 +17,7 @@ const foswikiLibPath = process.env.FOSWIKI_LIBS || "";
 const releaseString = process.env.RELEASE_STRING || "";
 const hasLocalRepository = !!process.env.HAS_LOCAL_REPOSITORY;
 const hasLocalCke = !!process.env.HAS_LOCAL_CKE;
+const cores = process.env.CORES || "7";
 
 const archiveDownloadUrl = `https://api.github.com/repos/${githubOrganization}/${repository}/tarball/${ref}`;
 const archiveDownloadPath = path.resolve(buildPath, 'archive.tar.gz');
@@ -61,7 +62,10 @@ const copyRepoTo = (path: string) => {
 }
 
 const main = async () => {
+    let buildFlags = `--cores=${cores}`;
+
     if (hasLocalCke) {
+        buildFlags += ' --skip-cke-compress';
     } else if (hasLocalRepository) {
         copyRepoTo(buildPath);
     } else {
@@ -81,7 +85,7 @@ const main = async () => {
         outPath: deployPath,
         githubAuthToken: githubAuthToken,
         isRootPath: hasLocalCke,
-        flags: hasLocalCke ? '--skip-cke-compress' : '',
+        flags: buildFlags,
     });
     console.info("Creating build...");
     await extensionBuilder.build();
