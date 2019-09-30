@@ -1,16 +1,31 @@
 # Foswiki Extension Build Container
-### Building the container:
-```bash
-docker build -t foswiki-extension-build .
+
+## Building
+
+Copy the `example.env` to `.env` and set `GITHUB_ORGANIZATION`
+
+After that run
+```
+./build.sh --help
+```
+ to gather more information.
+
+## Examples
+
+```
+./build.sh --docker-image
 ```
 
-### Running the container:
-```bash
-docker run -it -v <deployment path>:/deploy --env-file .env foswiki-extension-build
+Only build the docker image
+
+```
+./build.sh -o /opt/build/
 ```
 
-### Running the container for development
-```bash
-yarn watch
-docker run -it -v <deployment path>:/deploy -v dist:/src/dist --env-file .env foswiki-extension-build
+Build the specified repo (from `.env` file) and deploy it to `/opt/build`
+
 ```
+./build.sh -c 8 -l /opt/FoswikiContrib
+```
+
+Build local `/opt/FoswikiContrib` repo with 8 cores
