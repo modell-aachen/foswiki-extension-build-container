@@ -1,0 +1,24 @@
+name: Build Docker Image
+
+on: [push]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile --tag foswiki-extension-build
+
+      - name: Authenticate to GitHub Docker Registry
+        run: docker login docker.pkg.github.com -u modell-aachen -p ${secrets.GITHUB_TOKEN}
+
+      - name: Add remote tag for created image
+        run: docker tag foswiki-extension-build docker.pkg.github.com/modell-aachen/foswiki-extension-build-container/foswiki-extension-build
+
+      - name: Publish to GitHub Docker Registry
+        run: docker push docker.pkg.github.com/modell-aachen/foswiki-extension-build-container/foswiki-extension-build
