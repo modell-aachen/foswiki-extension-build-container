@@ -25,7 +25,8 @@ Only build the docker image
 Build the specified repo (from `.env` file) and deploy it to `/opt/build`
 
 ```
-./build.sh -c 8 -l /opt/FoswikiContrib
+./build.sh -c 8 -l
 ```
 
-Build local `/opt/FoswikiContrib` repo with 8 cores
+Build local specified repo (from `.env` file) with 8 cores
+

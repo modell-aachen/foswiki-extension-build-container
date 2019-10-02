@@ -60,7 +60,7 @@ build-extension() {
     done
 
     shift $(expr $OPTIND - 1 )
-    GITHUB_REPOSITORY=$1
+    if [ "$1" ]; then GITHUB_REPOSITORY=$1; fi
 
     if [ "$HAS_LOCAL_REPOSITORY" = 1 ] ; then
         local docker_mount_local_repo="-v $REPOS_DIRECTORY/$GITHUB_REPOSITORY:/repo"
