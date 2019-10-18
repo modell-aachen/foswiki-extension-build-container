@@ -17,7 +17,7 @@ package Foswiki::Contrib::Build;
 
 use strict;
 use JSON;
-use Thread::Pool;
+use Thread::Pool::Simple;
 
 our @stageFilters;
 
@@ -68,35 +68,39 @@ sub target_stage {
         foreach my $module ( @{ $this->{other_modules} } ) {
 
             die
-"$Foswiki::Contrib::Build::basedir / $module does not exist, cannot build $module\n"
-              unless ( -e "$Foswiki::Contrib::Build::basedir/$module" );
+            "$Foswiki::Contrib::Build::basedir / $module does not exist, cannot build $module\n"
+            unless ( -e "$Foswiki::Contrib::Build::basedir/$module" );
 
             warn "Installing $module in $this->{tmpDir}\n";
 
             #SMELL: uses legacy TWIKI_ exports
             my $cmd =
-"export FOSWIKI_HOME=$this->{tmpDir}; export FOSWIKI_LIBS=$libs; export TWIKI_HOME=$this->{tmpDir}; export TWIKI_LIBS=$libs; cd $Foswiki::Contrib::Build::basedir/$module; perl build.pl handsoff_install";
+            "export FOSWIKI_HOME=$this->{tmpDir}; export FOSWIKI_LIBS=$libs; export TWIKI_HOME=$this->{tmpDir}; export TWIKI_LIBS=$libs; cd $Foswiki::Contrib::Build::basedir/$module; perl build.pl handsoff_install";
 
             push @builds, { command => $cmd, name => $module };
         }
 
-        my $pool = Thread::Pool->new({
-           workers => $this->{cores},
-           do => sub {
-               my ( $build ) = @_;
-               my $output = `$build->{command}`;
+        my $pool = Thread::Pool::Simple->new(
+            min => $this->{cores},
+            max => $this->{cores},
+            do => [ \&build_module ],
+        );
 
-               print "# \e[1;31mmodule:\e[0m $build->{name}\n";
-               print $output;
-           },
-        });
-
-        foreach my $build ( @builds ) {
-            $pool->job($build);
+        foreach my $build (@builds) {
+            $pool->add($build);
         }
-        $pool->shutdown;
+        $pool->join();
     }
+
     $this->generate_metadatafile();
+}
+
+sub build_module {
+    my ( $build ) = @_;
+    my $output = `$build->{command}`;
+
+    print "# \e[1;31mmodule:\e[0m $build->{name}\n";
+    print $output;
 }
 
 sub generate_metadatafile {
