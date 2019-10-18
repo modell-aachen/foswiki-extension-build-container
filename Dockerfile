@@ -10,12 +10,14 @@ RUN rm -f /etc/localtime \
             curl \
             default-jdk \
             default-jre \
+            cpanminus \
             libcgi-pm-perl \
             libcgi-session-perl \
             libcss-minifier-perl \
             libhtml-scrubber-perl \
             libjavascript-minifier-perl \
             libjson-perl \
+            libthread-pool-simple-perl \
             make \
             vim \
             zip \
@@ -25,8 +27,7 @@ RUN rm -f /etc/localtime \
     && echo "deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main" | tee /etc/apt/sources.list.d/ansible.list \
     && apt-get update && apt-get install -y yarn ansible
 
-RUN curl -L http://cpanmin.us | perl - --self-upgrade
-RUN cpanm Thread::Pool
+RUN cpanm --notest Redis
 
 ENV FOSWIKI_LIBS /src/wiki-lib/lib/
 ENV BUILD_PATH /build
