@@ -87,6 +87,7 @@ build-extension() {
         -e HAS_LOCAL_REPOSITORY \
         -e HAS_LOCAL_CKE \
         -e CORES \
+        -e FONTAWESOME_NPM_AUTH_TOKEN \
         --rm \
         $image_name
 

@@ -8,6 +8,7 @@ import { execSync } from 'child_process';
 
 dotenv.config();
 const githubOrganization = process.env.GITHUB_ORGANIZATION || "";
+const fontAwesomeNpmAuthToken = process.env.FONTAWESOME_NPM_AUTH_TOKEN || "";
 const repository = process.env.GITHUB_REPOSITORY || "";
 const ref = process.env.GITHUB_REF || "";
 const githubAuthToken = process.env.GITHUB_AUTH_TOKEN || "";
@@ -86,6 +87,7 @@ const main = async () => {
         githubAuthToken: githubAuthToken,
         isRootPath: hasLocalCke,
         flags: buildFlags,
+        fontAwesomeNpmAuthToken,
     });
     console.info("Creating build...");
     await extensionBuilder.build();

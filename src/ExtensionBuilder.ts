@@ -15,6 +15,7 @@ type ExtensionBuilderOptions = {
     releaseString: string,
     outPath: string,
     githubAuthToken: string,
+    fontAwesomeNpmAuthToken: string,
     isRootPath: boolean,
     flags: string,
 }
@@ -27,9 +28,10 @@ class ExtensionBuilder {
     releaseString: string;
     outPath: string;
     githubAuthToken: string;
+    fontAwesomeNpmAuthToken: string;
     isRootPath: boolean;
     flags: string;
-    constructor({name, path, ref, foswikiLibPath, outPath, releaseString, githubAuthToken, isRootPath, flags}: ExtensionBuilderOptions) {
+    constructor({name, path, ref, foswikiLibPath, outPath, releaseString, githubAuthToken, isRootPath, flags, fontAwesomeNpmAuthToken}: ExtensionBuilderOptions) {
         this.name = name;
         this.path = path;
         this.ref = ref;
@@ -39,6 +41,7 @@ class ExtensionBuilder {
         this.githubAuthToken = githubAuthToken;
         this.isRootPath = isRootPath;
         this.flags = flags;
+        this.fontAwesomeNpmAuthToken = fontAwesomeNpmAuthToken;
     }
     async build() {
         await this.prepareComponentForBuild();
@@ -110,6 +113,7 @@ class ExtensionBuilder {
         const environment = Object.assign({}, process.env);
         environment.FOSWIKI_LIBS = this.foswikiLibPath;
         environment.GITHUB_TOKEN = this.githubAuthToken;
+        environment.FONTAWESOME_NPM_AUTH_TOKEN = this.fontAwesomeNpmAuthToken;
         delete environment.NODE_ENV; // this might be set to 'production', confusing the build process
         return environment;
     }
