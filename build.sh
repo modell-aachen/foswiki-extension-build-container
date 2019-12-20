@@ -73,6 +73,7 @@ build-extension() {
 
     if [ "$HAS_LOCAL_CKE" = 1 ] ; then
         local userbinding="-u `id -u $USER`:`id -g $USER`"
+        local docker_mount_local_repo="-v $REPOS_DIRECTORY/QwikiContrib/CKEditorPlugin:/repo"
     fi
 
     # reset built-in SECONDS function
