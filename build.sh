@@ -92,6 +92,10 @@ build-extension() {
         --rm \
         $image_name
 
+    if [ "$HAS_LOCAL_CKE" = 1 ] ; then
+        yes | cp -rf $REPOS_DIRECTORY/QwikiContrib/CKEditorPlugin/MANIFEST $REPOS_DIRECTORY/QwikiContrib/CKEditorPlugin/lib/Foswiki/Plugins/CKEditorPlugin/MANIFEST
+    fi
+
     duration=$SECONDS
     printf "\e[1;31mTime:     %d:%02d\e[0m\n" "$(($duration / 60))" "$(($duration % 60))"
 }
