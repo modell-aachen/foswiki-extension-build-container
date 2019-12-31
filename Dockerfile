@@ -7,16 +7,21 @@ RUN rm -f /etc/localtime \
             ant \
             apt-transport-https \
             build-essential \
+            cpanminus \
             curl \
             default-jdk \
             default-jre \
-            cpanminus \
+            libcairo2-dev \
             libcgi-pm-perl \
             libcgi-session-perl \
             libcss-minifier-perl \
+            libgif-dev \
             libhtml-scrubber-perl \
             libjavascript-minifier-perl \
+            libjpeg-dev \
             libjson-perl \
+            libpango1.0-dev \
+            librsvg2-dev \
             libthread-pool-simple-perl \
             make \
             vim \
