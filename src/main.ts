@@ -14,11 +14,8 @@ const ref = process.env.GITHUB_REF || "";
 const githubAuthToken = process.env.GITHUB_AUTH_TOKEN || "";
 const buildPath = process.env.BUILD_PATH || "";
 const deployPath = process.env.DEPLOY_PATH || "";
-const foswikiLibPath = process.env.FOSWIKI_LIBS || "";
 const releaseString = process.env.RELEASE_STRING || "";
 const hasLocalRepository = !!process.env.HAS_LOCAL_REPOSITORY;
-const hasLocalCke = !!process.env.HAS_LOCAL_CKE;
-const cores = process.env.CORES || "7";
 
 const archiveDownloadUrl = `https://api.github.com/repos/${githubOrganization}/${repository}/tarball/${ref}`;
 const archiveDownloadPath = path.resolve(buildPath, 'archive.tar.gz');
@@ -63,11 +60,7 @@ const copyRepoTo = (path: string) => {
 }
 
 const main = async () => {
-    let buildFlags = `--cores=${cores}`;
-
-    if (hasLocalCke) {
-        buildFlags += ' --skip-cke-compress';
-    } else if (hasLocalRepository) {
+    if (hasLocalRepository) {
         copyRepoTo(buildPath);
     } else {
         console.info(`Starting: ${githubOrganization}/${repository} on ${ref}`);
@@ -79,14 +72,11 @@ const main = async () => {
 
     const extensionBuilder = new ExtensionBuilder({
         name: repository,
-        path: hasLocalCke ? '/repo' : buildPath,
+        path: buildPath,
         ref: ref,
-        foswikiLibPath: foswikiLibPath,
         releaseString: releaseString,
         outPath: deployPath,
         githubAuthToken: githubAuthToken,
-        isRootPath: hasLocalCke,
-        flags: buildFlags,
         fontAwesomeNpmAuthToken,
     });
     console.info("Creating build...");
