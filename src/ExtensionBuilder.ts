@@ -89,8 +89,17 @@ class ExtensionBuilder {
         const componentPath = await this.getComponentRootPath();
 
         await this.copyFile(componentPath, this.outPath, `${this.name}.tgz`);
-        await this.copyFile(componentPath, this.outPath, `${this.name}_installer`);
-        await this.copyFile(componentPath, this.outPath, 'metadata.json');
+        fs.writeFileSync(`${this.outPath}/${this.name}_installer`, '');
+        fs.writeFileSync(`${this.outPath}/metadata.json`, this.metadata());
+    }
+    metadata() {
+        return JSON.stringify({
+            description : "Q.wiki",
+            version: "1.0",
+            release: this.releaseString,
+            date: (new Date()).toISOString(),
+            dependencies: [],
+        }, null, 2);
     }
     async copyFile(srcdir: string, dstdir: string, file: string) {
         return new Promise((resolve, reject) => {
