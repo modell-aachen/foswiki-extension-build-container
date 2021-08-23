@@ -1,4 +1,4 @@
-FROM node:12.16.3
+FROM node:12.22.5
 
 RUN rm -f /etc/localtime \
     && ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime \
