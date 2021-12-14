@@ -17,6 +17,7 @@ RUN apt-get update -y \
     gpg \
     curl \
     wget \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://deb.nodesource.com/setup_12.x | bash -
