@@ -30,7 +30,6 @@ RUN curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | tee /usr
 RUN apt-get update -y \
     && apt-get install -y --no-install-recommends \
     sshpass \
-    nodejs \
     yarn \
     && rm -rf /var/lib/apt/lists/*
 
