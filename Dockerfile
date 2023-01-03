@@ -8,6 +8,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV BUILD_PATH /build
 ENV DEPLOY_PATH /deploy
 
+RUN touch .profile
+SHELL ["/bin/bash", "--login", "-c"]
+
 RUN rm -f /etc/localtime \
     && ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime
 
@@ -15,6 +18,9 @@ RUN apt-get update -y \
     && apt-get install -y --no-install-recommends \
     apt-transport-https \
     ca-certificates \
+    python-is-python3 \
+    python3-pip \
+    python3-cryptography \
     gpg \
     curl \
     wget \
@@ -26,13 +32,10 @@ RUN curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | tee /usr
 
 RUN apt-get update -y \
     && apt-get install -y --no-install-recommends \
-    apt-transport-https \
     sshpass \
     yarn \
     && rm -rf /var/lib/apt/lists/*
-    
-RUN pip3 install pyvmomi
-RUN pip3 install --upgrade git+https://github.com/vmware/vsphere-automation-sdk-python.git@v8.0.0.0
+
 RUN pip3 install ansible
 
 RUN useradd -m builduser
@@ -44,8 +47,10 @@ RUN mkdir /src \
     && chmod -R 777 /deploy
 
 USER builduser
+
+ENV npm_config_loglevel warn
+ENV npm_config_unsafe_perm true
 ENV NVM_DIR="/home/builduser/.nvm"
-ENV PATH="/home/builduser/.yarn/bin:$PATH"
 
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
 
@@ -59,7 +64,9 @@ ENV PATH="$NVM_DIR/v${NODE_VERSION}/bin:$PATH"
 
 WORKDIR /src/
 COPY --chown=builduser:builduser . .
-RUN yarn \
+
+RUN . "$NVM_DIR/nvm.sh" \
+    && yarn \
     && yarn build
 
 ENTRYPOINT HOME=/home/builduser node /src/dist/main.js
